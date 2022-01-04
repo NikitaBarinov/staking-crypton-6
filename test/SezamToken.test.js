@@ -1,69 +1,70 @@
-// const { expect } = require("chai");
-// const { ethers } = require("hardhat");
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
 
-// describe('Token contract', () => {
-//     let Token, token, owner, addr1, addr2;
-//     const adminRole = ethers.constants.HashZero;
+describe('Token contract', () => {
+    let Token, token, owner, addr1, addr2;
+    const adminRole = ethers.constants.HashZero;
    
-//     const minterRole =ethers.utils.solidityKeccak256(["string"],["MINTER_ROLE"]);
-//     const burnerRole =ethers.utils.solidityKeccak256(["string"],["BURNER_ROLE"]);
-//     const zero_address = "0x0000000000000000000000000000000000000000";
+    const minterRole =ethers.utils.solidityKeccak256(["string"],["MINTER_ROLE"]);
+    const burnerRole =ethers.utils.solidityKeccak256(["string"],["BURNER_ROLE"]);
+    const zero_address = "0x0000000000000000000000000000000000000000";
 
-//     before(async () => {
-//         [addr1, owner, addr2] = await ethers.getSigners();
-//         Token = await ethers.getContractFactory("SezamToken");
-//     });
+    before(async () => {
+        [addr1, owner, addr2] = await ethers.getSigners();
+        Token = await ethers.getContractFactory("SezamToken");
+    });
     
-//     beforeEach(async () => {
-//         token = await Token.connect(owner).deploy();
-//         await token.deployed();
+    beforeEach(async () => {
+        token = await Token.connect(owner).deploy();
+        await token.deployed();
     
-//     });
+    });
 
-//     describe('Deployment', () => {
-//         it('Should set admin role for trading floor', async () => {
-//             expect(await token.hasRole(adminRole,tradingFloor.address)).to.equal(true);
-//         });
+    describe('Deployment', () => {
+        it('Should set admin role for trading floor', async () => {
+            expect(await token.hasRole(adminRole,tradingFloor.address)).to.equal(true);
+        });
 
-//         it('Should set minter role for trading floor', async () => {
-//             expect(await token.hasRole(minterRole,tradingFloor.address)).to.equal(true);
-//         });
+        it('Should set minter role for trading floor', async () => {
+            expect(await token.hasRole(minterRole,tradingFloor.address)).to.equal(true);
+        });
 
-//         it('Should set burner role for trading floor', async () => {
-//             expect(await token.hasRole(burnerRole,tradingFloor.address)).to.equal(true);
-//         });
+        it('Should set burner role for trading floor', async () => {
+            expect(await token.hasRole(burnerRole,tradingFloor.address)).to.equal(true);
+        });
 
-//         it('Should set right trading floor address', async () => {
-//             expect(tradingFloor.address).to.equal(await tradingFloor.getTradingFloorAddress());
-//         });
+        it('Should set right trading floor address', async () => {
+            expect(tradingFloor.address).to.equal(await tradingFloor.getTradingFloorAddress());
+        });
 
-//         it('Should set right balance for floor address', async () => {
-//             expect(
-//                 await tradingFloor.balanceOfACDM(tradingFloor.address))
-//             .to.equal(
-//                 await token.balanceOf(tradingFloor.address)
-//             );       
-//         });
+        it('Should set right balance for floor address', async () => {
+            expect(
+                await tradingFloor.balanceOfACDM(tradingFloor.address))
+            .to.equal(
+                await token.balanceOf(tradingFloor.address)
+            );       
+        });
 
-//         it("Non owner should not be able to init Marketplace", async () => {
-//             await expect(
-//               tradingFloor.connect(addr1).tradingFloorInit()
-//             ).to.be.revertedWith("Ownable: caller is not the owner");
-//         });
-//     });
+        it("Non owner should not be able to init Marketplace", async () => {
+            await expect(
+              tradingFloor.connect(addr1).tradingFloorInit()
+            ).to.be.revertedWith("Ownable: caller is not the owner");
+        });
+    });
 
-//     describe('Transactions', () => {
-//         it('Registration: should register user without refers', async () => {
-//             await tradingFloor.connect(addr1)
-//                 .registration(
-//                     zero_address
-//                 );
+    describe('Transactions', () => {
+        it('Registration: should register user without refers', async () => {
+            await tradingFloor.connect(addr1)
+                .registration(
+                    zero_address
+                );
 
-//             const addr1Refers = await tradingFloor.getRefer(addr1.address);
+            const addr1Refers = await tradingFloor.getRefer(addr1.address);
         
-//             expect(addr1Refers).to.equal(zero_address);
-//             });
-
+            expect(addr1Refers).to.equal(zero_address);
+            });
+        });
+    });
 //         it('Registration: should register user with refer', async () => {
 //             await tradingFloor.connect(addr1)
 //             .registration(

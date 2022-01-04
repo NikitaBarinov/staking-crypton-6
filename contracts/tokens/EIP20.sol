@@ -13,9 +13,9 @@ contract ACDM is ERC20, ERC20Burnable, Pausable, AccessControl {
 
     constructor() ERC20("ACDM", "ACD") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
+    } 
 
-    function setRoleForTradingFloor(address _tradingFloor)external onlyRole(DEFAULT_ADMIN_ROLE){
+    function setRoleForContract(address _tradingFloor)external onlyRole(DEFAULT_ADMIN_ROLE){
         _grantRole(DEFAULT_ADMIN_ROLE, _tradingFloor);
         _grantRole(MINTER_ROLE, _tradingFloor);
         _grantRole(BURNER_ROLE, _tradingFloor);
