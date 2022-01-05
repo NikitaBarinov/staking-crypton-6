@@ -2,122 +2,176 @@
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "./tokens/EIP20.sol";
+import "./tokens/ACDM.sol";
 import "./tokens/ERC721.sol";
 
-contract NFTMarket is ReentrancyGuard{
-     using Counters for Counters.Counter;
+contract NFTMarket is Ownable{
+    using SafeERC20 for IERC20;
+    using Counters for Counters.Counter;
     //Counter for items id 
     Counters.Counter private _itemIds;
     //Counter for amount of sold items
     Counters.Counter private _itemsSold; 
     
     address private nftContract;
-    address payable owner;
-    uint256 listeningPrice = 0.025 ether;
+    ACDM private token;
 
-    constructor(address _nftContract) {
+    constructor(address _nftContract, address _voteToken) {
+        token = ACDM(_voteToken);
         nftContract = _nftContract;
-        owner = payable(msg.sender);
     }
 
     struct MarketItem {
         uint256 itemId;
-        address nftContract;
-        uint256 tokenId;
-        address payable seller;
-        address payable owner;
         uint256 price;
+        address nftContract;
+        address seller;
+        address owner;
         bool sold;
     }
 
     mapping(uint256 => MarketItem) private idToMarketItem;//itemId => marketItem
-
+    
+    //Emitted when created token for item
+    event ItemCreated(
+        address indexed owner,
+        uint256 tokenId
+    );
+    
+    //Emitted when item listed
     event MarketItemCreated (
-        uint256 indexed itemId,
         address indexed nftContract,
-        uint256 indexed tokenId,
+        address indexed owner,
         address seller,
-        address owner,
+        uint256 indexed itemId,
         uint256 price,
         bool sold
     );
+    
+    //Emitted when item bought by new user
+    event ItemBought(address _newOwner, uint256 _itemId, uint256 _price);
+    
+    //Emitted when listed item cancelled without buying
+    event MarketItemCanceled(uint256 _itemId);
 
-    /** @notice Create market item using.
-     * @dev Update itemsId, emit MarketItemCreated event.
-     * @param _tokenId Id of nft token.
-     * @param _price Price for choisen nft.
+    /** @notice Create token on ERC721 contract and on this.
+     * @dev Create idToMarketItem, emit ItemCreated event.
+     * @param _to Address of receiver of nft.
+     * @param tokenURI URI of mintable token.
     */
-    function createMarketItem(
-        uint256 _tokenId,
-        uint256 _price
-    ) public payable nonReentrant{
-        require(_price > 0, "Price must be bigger then zero");
-        require(msg.value == listeningPrice, "Price must be equal to litening price");
-
+    function createItem(
+        address _to,
+        string memory tokenURI
+    ) external onlyOwner{
         _itemIds.increment();
         uint256 itemId = _itemIds.current();
+        
+        MonkeyVision(nftContract).createToken(_to, tokenURI);
 
         idToMarketItem[itemId] = MarketItem(
             itemId,
+            0,
             nftContract,
-            _tokenId,
-            payable(msg.sender),
-            payable(address(0)),
+            address(0),
+            _to,
+            false
+        );
+
+        emit ItemCreated(
+            _to,
+            itemId 
+        );
+    }
+
+    /** @notice List item on marketplace.
+     * @dev Update itemsId, emit MarketItemCreated event.
+     * @param _itemId Id of listed item.
+     * @param _price Price in EIP20 tokens for item.
+    */
+    function listItem(
+        uint256 _itemId, 
+        uint256 _price
+    ) external {
+        require(msg.sender == idToMarketItem[_itemId].owner, "Not token owner");
+        uint256 itemId = _itemIds.current();    
+        require(_itemId <= itemId, "Item does not exist");
+        require(_price > 0,"Price must be bigger then zero");
+
+        IERC721(nftContract).transferFrom(msg.sender, address(this), _itemId);
+        
+        idToMarketItem[_itemId].price = _price;
+        idToMarketItem[_itemId].sold = false;
+
+        emit MarketItemCreated(
+            nftContract, 
+            msg.sender,  
+            address(this),
+            _itemId,
             _price,
             false
-        );
+        ); 
+    }
 
-        IERC721(nftContract).transferFrom(msg.sender, address(this), _tokenId);
+    /** @notice Buy item for price in ACDM tokens.
+     * @dev Market item have price more then zero, emit ItemBought event.
+     * @param _itemId Id of listed item.
+    */
+    function buyItem(uint256 _itemId) external {
+        require(idToMarketItem[_itemId].sold == false, "Item already sold");
+        require(idToMarketItem[_itemId].price <= IERC20(token).balanceOf(msg.sender), "Insufficent funds");
         
-        emit MarketItemCreated(
-            itemId, 
-            nftContract, 
-            _tokenId, 
-            msg.sender, 
-            owner, 
-            _price, 
-            false
+        IERC20(token).safeTransferFrom(msg.sender, address(this), idToMarketItem[_itemId].price);
+        
+        idToMarketItem[_itemId].sold = true;
+        idToMarketItem[_itemId].owner = msg.sender;
+        
+        emit ItemBought(
+            msg.sender,  
+            _itemId,
+            idToMarketItem[_itemId].price
         );
     }
 
-    function createMarketSale(
-        uint256 itemId
-    ) public payable nonReentrant {
-        uint256 price = idToMarketItem[itemId].price;
-        uint256 tokenId = idToMarketItem[itemId].tokenId;
-        require(msg.value == price, "Please submit the asking price in order to compite the purchase");
-        
-        idToMarketItem[itemId].seller.transfer(msg.value);
-        IERC721(nftContract).transferFrom(address(this), msg.sender, tokenId);
-        idToMarketItem[itemId].owner = payable(msg.sender);
-        idToMarketItem[itemId].sold = true;
+    /** @notice Cancel item sale for price in ACDM tokens.
+     * @dev Non market items have zero price, emit MarketItemCanceled event.
+     * @param _itemId Id of listed item.
+    */
+    function cancel(uint256 _itemId) external {
+        require(idToMarketItem[_itemId].owner == msg.sender,"You are not item owner");
+        require(idToMarketItem[_itemId].sold == false, "Item already sold");
+        require(idToMarketItem[_itemId].price > 0, "Item not sale");
+       
+        idToMarketItem[_itemId].price = 0;
+        idToMarketItem[_itemId].sold = false;
 
-        _itemsSold.increment();
-        payable(owner).transfer(listeningPrice);
+        emit MarketItemCanceled( _itemId);
     }
 
+    /** @notice Fetch array of market items.
+    */
     function fetchMarketItems() public view returns(MarketItem[] memory){
         uint256 itemCount = _itemIds.current();
         uint256 unsoldItemCount = _itemIds.current() - _itemsSold.current();
         uint256 currentIndex = 0;
         MarketItem[] memory items = new MarketItem[](unsoldItemCount);
         for (uint256 i = 0; i < itemCount; i++){
-            if(idToMarketItem[i + 1].owner == address(0)){
+            if(idToMarketItem[i + 1].price > 0){
                 uint256 currentId = idToMarketItem[i + 1].itemId;
                 MarketItem storage currentItem = idToMarketItem[currentId];
                 items[currentIndex] = currentItem;
                 currentIndex +=1;
             }
-        }
+        } 
         return items;
     }
 
+    /** @notice Fetch array of your nft .
+    */
     function fetchMyNFTs() public view returns(MarketItem[] memory){
         uint256 totalItemCount = _itemIds.current();
         uint256 itemCount = 0;
@@ -141,6 +195,8 @@ contract NFTMarket is ReentrancyGuard{
         return items;
     }
 
+    /** @notice Fetch array already created and not saled items.
+    */
     function fetchItemsCreated() public view returns(MarketItem[] memory){
         uint256 totalItemCount = _itemIds.current();
         uint256 itemCount = 0;
@@ -164,8 +220,11 @@ contract NFTMarket is ReentrancyGuard{
         return items;
     }
 
-    function getListingPrice() public view returns(uint256){
-        return listeningPrice;
+
+    /** @notice Getter for choisen item.
+    */
+    function getItem(uint256 _itemId) public view returns(MarketItem memory){
+        return idToMarketItem[_itemId];
     }
 
 }
