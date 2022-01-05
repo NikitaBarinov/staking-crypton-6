@@ -6,13 +6,17 @@ async function main() {
     
     const balance = await accounts[1].getBalance();
     console.log('Account balance ',balance.toString());
-    const tradingFloor = await hre.ethers.getContractAt("TradingFloor", process.env.TRADINGFLOOR_ADDRESS);
+
+    const Token = await ethers.getContractFactory("MonkeyVision");
+    const token = await Token.connect(accounts[1]).deploy();
+    await token.deployed();
+
+    console.log('Token address:',token.address);
     
-
-
-    var result = await tradingFloor.connect(accounts[1]).tradingFloorInit();
-    console.log("Trading floor successfuly init");
-    console.log(result);
+    fs.appendFileSync(
+      `.env`,
+    `\r\# Deployed at \rMONKEYVISION_ADDRESS=${token.address}\r`
+    );
 }   
 
 main()

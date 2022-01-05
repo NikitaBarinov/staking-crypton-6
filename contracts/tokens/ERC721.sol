@@ -13,7 +13,7 @@ contract MonkeyVision is ERC721URIStorage, Ownable {
 
     address contractAddress;
     event TokenCreated(address owner, uint256 _itemId, string _tokenURI);
-    constructor () ERC721("Metaverse Tokens", "MET") {
+    constructor () ERC721("Metaverse Token", "MET") {
     }
 
     function initMarket(address market) external onlyOwner {
