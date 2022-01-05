@@ -10,7 +10,7 @@ async function main() {
     const TradingFloor = await ethers.getContractFactory("NFTMarket");
     const tradingFloor = await TradingFloor.connect(accounts[1]).deploy(process.env.MONKEYVISION_ADDRESS, process.env.TOKEN_ADDRESS);
     await tradingFloor.deployed();
-    mv.address, token.address
+    
     console.log('NFTMarket address:', tradingFloor.address);
     
     fs.appendFileSync(
