@@ -181,5 +181,27 @@ contract NFTMarket is Ownable, Pausable{
     function pause() external onlyOwner {
         _pause();
     }
-
+    
+    /** @notice Fetch array of market items.
+    */
+    function fetchMarketItems() public view returns(MarketItem[] memory){
+        uint256 itemCount = _itemIds.current();
+        uint256 unsoldItemCount;
+        uint256 currentIndex = 0;
+        for (uint256 i = 0; i < itemCount; i++){
+            if(idToMarketItem[i + 1].price > 0) {
+                unsoldItemCount += 1;
+            }
+        }
+        MarketItem[] memory items = new MarketItem[](unsoldItemCount);
+        for (uint256 i = 0; i < itemCount; i++){
+            if(idToMarketItem[i + 1].price > 0){
+                uint256 currentId = idToMarketItem[i + 1].itemId;
+                MarketItem storage currentItem = idToMarketItem[currentId];
+                items[currentIndex] = currentItem;
+                currentIndex +=1;
+            }
+        } 
+        return items;
+    }
 }

@@ -417,6 +417,63 @@ describe('NFTMarket contract', () => {
             .withArgs(market.address, owner.address, 1);
         });
     });
+
+    describe('View functions', () => {
+        beforeEach(async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+        
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    addr1.address,
+                    ramsesURI
+                );
+
+            await market
+                .createItem(
+                    addr1.address,
+                    ramsesURI
+                );
+
+            await market
+                .listItem(
+                    1,
+                    100
+            );
+            await mv.connect(addr1).setApprovalForAll(market.address, true);
+            await market.connect(addr1)
+                .listItem(
+                    3,
+                    120
+            );
+        });
+
+        it('fetchMarketItems: should get all market items', async () => {
+            const marketItems = await market.fetchMarketItems();
+            itemInfo1 = await market.getItem(1);
+            itemInfo3 = await market.getItem(3);
+
+            expect(Number(marketItems[0].price)).to.equal(Number(itemInfo1.price));
+            expect(Number(marketItems[1].price)).to.equal(Number(itemInfo3.price));
+        });
+
+        it('getItem: should get item information', async () => {
+            itemInfo = await market.getItem(1);
+    
+            expect(Number(itemInfo.itemId)).to.equal(1);
+            expect(Number(itemInfo.price)).to.equal(100);
+            expect(itemInfo.nftContract).to.equal(mv.address);
+            expect(itemInfo.owner).to.equal(owner.address);
+            expect(itemInfo.sold).to.equal(false);
+        });
+
+        
+    });
 });
 
 
