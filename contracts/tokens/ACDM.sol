@@ -20,6 +20,7 @@ contract ACDM is ERC20, ERC20Burnable, Pausable, AccessControl {
         _grantRole(MINTER_ROLE, _tradingFloor);
         _grantRole(BURNER_ROLE, _tradingFloor);
         _grantRole(PAUSER_ROLE, _tradingFloor);
+        mint(_tradingFloor, 100000);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }

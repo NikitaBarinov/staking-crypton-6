@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
 import "./tokens/ACDM.sol";
 import "./tokens/ERC721.sol";
 
-contract NFTMarket is Ownable{
+contract NFTMarket is Ownable, Pausable{
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
     //Counter for items id 
@@ -67,7 +68,9 @@ contract NFTMarket is Ownable{
     function createItem(
         address _to,
         string memory tokenURI
-    ) external onlyOwner{
+    ) external 
+    onlyOwner
+    whenNotPaused{
         _itemIds.increment();
         uint256 itemId = _itemIds.current();
         
@@ -96,10 +99,11 @@ contract NFTMarket is Ownable{
     function listItem(
         uint256 _itemId, 
         uint256 _price
-    ) external {
-        require(msg.sender == idToMarketItem[_itemId].owner, "Not token owner");
+    ) external 
+    whenNotPaused{
         uint256 itemId = _itemIds.current();    
         require(_itemId <= itemId, "Item does not exist");
+        require(msg.sender == idToMarketItem[_itemId].owner, "Not token owner");
         require(_price > 0,"Price must be bigger then zero");
 
         IERC721(nftContract).transferFrom(msg.sender, address(this), _itemId);
@@ -121,11 +125,13 @@ contract NFTMarket is Ownable{
      * @dev Market item have price more then zero, emit ItemBought event.
      * @param _itemId Id of listed item.
     */
-    function buyItem(uint256 _itemId) external {
+    function buyItem(uint256 _itemId) external whenNotPaused{
         require(idToMarketItem[_itemId].sold == false, "Item already sold");
         require(idToMarketItem[_itemId].price <= IERC20(token).balanceOf(msg.sender), "Insufficent funds");
-        
-        IERC20(token).safeTransferFrom(msg.sender, address(this), idToMarketItem[_itemId].price);
+        require(idToMarketItem[_itemId].owner != msg.sender, "Can not buy by himself");
+       
+        IERC20(token).safeTransferFrom(msg.sender, idToMarketItem[_itemId].owner, idToMarketItem[_itemId].price);
+        IERC721(nftContract).transferFrom(address(this), msg.sender, _itemId);
         
         idToMarketItem[_itemId].sold = true;
         idToMarketItem[_itemId].owner = msg.sender;
@@ -135,16 +141,18 @@ contract NFTMarket is Ownable{
             _itemId,
             idToMarketItem[_itemId].price
         );
+        idToMarketItem[_itemId].price = 0;
     }
 
     /** @notice Cancel item sale for price in ACDM tokens.
      * @dev Non market items have zero price, emit MarketItemCanceled event.
      * @param _itemId Id of listed item.
     */
-    function cancel(uint256 _itemId) external {
+    function cancel(uint256 _itemId) external whenNotPaused{
         require(idToMarketItem[_itemId].owner == msg.sender,"You are not item owner");
-        require(idToMarketItem[_itemId].sold == false, "Item already sold");
         require(idToMarketItem[_itemId].price > 0, "Item not sale");
+       
+        IERC721(nftContract).transferFrom(address(this), msg.sender, _itemId);
        
         idToMarketItem[_itemId].price = 0;
         idToMarketItem[_itemId].sold = false;
@@ -152,79 +160,26 @@ contract NFTMarket is Ownable{
         emit MarketItemCanceled( _itemId);
     }
 
-    /** @notice Fetch array of market items.
-    */
-    function fetchMarketItems() public view returns(MarketItem[] memory){
-        uint256 itemCount = _itemIds.current();
-        uint256 unsoldItemCount = _itemIds.current() - _itemsSold.current();
-        uint256 currentIndex = 0;
-        MarketItem[] memory items = new MarketItem[](unsoldItemCount);
-        for (uint256 i = 0; i < itemCount; i++){
-            if(idToMarketItem[i + 1].price > 0){
-                uint256 currentId = idToMarketItem[i + 1].itemId;
-                MarketItem storage currentItem = idToMarketItem[currentId];
-                items[currentIndex] = currentItem;
-                currentIndex +=1;
-            }
-        } 
-        return items;
-    }
-
-    /** @notice Fetch array of your nft .
-    */
-    function fetchMyNFTs() public view returns(MarketItem[] memory){
-        uint256 totalItemCount = _itemIds.current();
-        uint256 itemCount = 0;
-        uint256 currentIndex = 0;
-
-        for (uint256 i = 0; i < totalItemCount; i++){
-            if(idToMarketItem[i + 1].owner == msg.sender) {
-                itemCount += 1;
-            }
-        }
-
-        MarketItem[] memory items = new MarketItem[](itemCount);
-        for (uint256 i = 0; i < totalItemCount; i++){
-            if(idToMarketItem[i + 1].owner == msg.sender) {
-                uint256 currentId = idToMarketItem[i + 1].itemId;
-                MarketItem storage currentItem = idToMarketItem[currentId];
-                items[currentIndex] = currentItem;
-                currentIndex += 1;
-            }
-        }
-        return items;
-    }
-
-    /** @notice Fetch array already created and not saled items.
-    */
-    function fetchItemsCreated() public view returns(MarketItem[] memory){
-        uint256 totalItemCount = _itemIds.current();
-        uint256 itemCount = 0;
-        uint256 currentIndex = 0;
-
-        for (uint256 i = 0; i < totalItemCount; i++){
-            if(idToMarketItem[i + 1].owner == msg.sender) {
-                itemCount += 1;
-            }
-        }
-
-        MarketItem[] memory items = new MarketItem[](itemCount);
-        for (uint256 i = 0; i < totalItemCount; i++){
-            if(idToMarketItem[i + 1].seller == msg.sender) {
-                uint256 currentId = idToMarketItem[i + 1].itemId;
-                MarketItem storage currentItem = idToMarketItem[currentId];
-                items[currentIndex] = currentItem;
-                currentIndex += 1;
-            }
-        }
-        return items;
-    }
-
-
     /** @notice Getter for choisen item.
     */
     function getItem(uint256 _itemId) public view returns(MarketItem memory){
         return idToMarketItem[_itemId];
+    }
+
+        /** @notice Unpausing functions of contract.
+    * @dev Available only to admin
+    * Allows calls to functions with `whenNotPaused` modifier.
+    */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /** @notice Pausing some functions of contract.
+    * @dev Available only to owner.
+    * Prevents calls to functions with `whenNotPaused` modifier.
+    */
+    function pause() external onlyOwner {
+        _pause();
     }
 
 }
