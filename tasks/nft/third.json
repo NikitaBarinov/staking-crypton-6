@@ -1,0 +1,16 @@
+{
+  "attributes": [
+    {
+      "trait_type": "Breed",
+      "value": "abvgd"
+    },
+    {
+      "trait_type": "Eye color",
+      "value": "White"
+    }
+  ],
+  "description": "The world's most adorable and sensitive pup.",
+  "metadata": "https://gateway.pinata.cloud/ipfs/QmeHGn7e9Dg9BUxLysiXZ64LRTak3tpQAep2pRi4X6mGqV",
+  "image": "https://gateway.pinata.cloud/ipfs/QmegSh9JCHyc8oBSbZQBm9fvEQ3N6A29Df7qW7rGNpAiGa",
+  "name": "Ramses"
+}
