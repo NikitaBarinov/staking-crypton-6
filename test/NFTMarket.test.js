@@ -114,7 +114,7 @@ describe('NFTMarket contract', () => {
             expect(Number(itemInfo.price)).to.equal(0);
             expect(itemInfo.nftContract).to.equal(mv.address);
             expect(itemInfo.owner).to.equal(owner.address);
-            expect(itemInfo.sold).to.equal(false);
+            expect(itemInfo.sale).to.equal(false);
         });
 
         it('createItem: should reverted with "Ownable: caller is not the owner"', async () => {
@@ -142,7 +142,7 @@ describe('NFTMarket contract', () => {
             .withArgs(owner.address, 1, ramsesURI);
         });
 
-        it('lisItem: should list item', async () => {
+        it('listItem: should list item', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -162,10 +162,10 @@ describe('NFTMarket contract', () => {
             expect(Number(itemInfo.price)).to.equal(100);
             expect(itemInfo.nftContract).to.equal(mv.address);
             expect(itemInfo.owner).to.equal(owner.address);
-            expect(itemInfo.sold).to.equal(false);
+            expect(itemInfo.sale).to.equal(true);
         });
 
-        it('lisItem: should reverted with "Not token owner"', async () => {
+        it('listItem: should reverted with "Not token owner"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -180,7 +180,7 @@ describe('NFTMarket contract', () => {
             .to.be.revertedWith('Not token owner');
         });
 
-        it('lisItem: should reverted with "Item does not exist"', async () => {
+        it('listItem: should reverted with "Item does not exist"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -195,7 +195,7 @@ describe('NFTMarket contract', () => {
             .to.be.revertedWith('Item does not exist');
         });
 
-        it('lisItem: should reverted with "Price must be bigger then zero"', async () => {
+        it('listItem: should reverted with "Price must be bigger then zero"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -224,7 +224,7 @@ describe('NFTMarket contract', () => {
                 )
             )
             .to.emit(market, "MarketItemCreated")
-            .withArgs(mv.address, owner.address, market.address, 1, 100, false)
+            .withArgs(mv.address, owner.address, 1, 100, true)
             .and.to.emit(mv, "Transfer")
             .withArgs(owner.address, market.address, 1);
         });
@@ -256,7 +256,7 @@ describe('NFTMarket contract', () => {
             expect(Number(itemInfo.price)).to.equal(0);
             expect(itemInfo.nftContract).to.equal(mv.address);
             expect(itemInfo.owner).to.equal(addr1.address);
-            expect(itemInfo.sold).to.equal(true);
+            expect(itemInfo.sale).to.equal(false);
         });
 
         it('buyItem: should reverted with "Insufficent funds"', async () => {
@@ -354,7 +354,7 @@ describe('NFTMarket contract', () => {
             expect(Number(itemInfo.price)).to.equal(0);
             expect(itemInfo.nftContract).to.equal(mv.address);
             expect(itemInfo.owner).to.equal(owner.address);
-            expect(itemInfo.sold).to.equal(false);
+            expect(itemInfo.sale).to.equal(false);
         });
 
         it('cancel: should reverted with "You are not item owner"', async () => {
@@ -416,6 +416,672 @@ describe('NFTMarket contract', () => {
             .and.to.emit(mv, "Transfer")
             .withArgs(market.address, owner.address, 1);
         });
+
+        it('listItemOnAuction: should buy list item on auction', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            auctionInfo = await market.getAuction(1);
+            itemInfo = await market.getItem(1);
+                
+            expect(Number(itemInfo.itemId)).to.equal(1);
+            expect(Number(itemInfo.price)).to.equal(0);
+            expect(itemInfo.nftContract).to.equal(mv.address);
+            expect(itemInfo.owner).to.equal(owner.address);
+            expect(itemInfo.sale).to.equal(true);
+
+            expect(auctionInfo.owner).to.equal(owner.address);
+            expect(auctionInfo.lastBidder).to.equal(zero_address);
+            expect(Number(auctionInfo.price)).to.equal(5);
+            expect(Number(auctionInfo.amountOfBids)).to.equal(0);
+            expect(auctionInfo.amountOfBids).to.equal(0);
+            expect(auctionInfo.idItem).to.equal(1);
+            expect(auctionInfo.minBidStep).to.equal(1);
+            expect(auctionInfo.open).to.equal(true);
+        });
+
+        it('listItemOnAuction: to be revet with "Not token owner"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+
+            await expect(market.connect(addr1)
+            .listItemOnAuction(
+                1,
+                1,
+                5 
+            ))
+            .to.be.revertedWith('Not token owner');
+        });
+
+        it('listItemOnAuction: to be revet with "Item already sale"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            await market
+                .listItem(
+                    1,
+                    100
+            );
+            await expect(market.connect(owner)
+            .listItemOnAuction(
+                1,
+                1,
+                5 
+            ))
+            .to.be.revertedWith('Item already sale');
+        });
+
+        it('listItemOnAuction: to be revet with "Item does not exist"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await expect(market
+            .listItemOnAuction(
+                5,
+                1,
+                5 
+            ))
+            .to.be.revertedWith('Item does not exist');
+        });
+
+        it('listItemOnAuction: to emit "Item does not exist"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await expect(market
+            .listItemOnAuction(
+                5,
+                1,
+                5 
+            ))
+            .to.be.revertedWith('Item does not exist');
+            await expect(
+                market
+                .connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+                ))
+            .to.emit(market, "AuctionStarted")
+            .withArgs(owner.address, 5, 1, Number((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp + (259201)), 1, 1)
+            .and.to.emit(mv, "Transfer")
+            .withArgs(owner.address, market.address, 1);
+        });
+
+        it('makeBid: should make a bid to auction', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+
+            token.connect(addr1).approve(market.address, 900);
+            await market.connect(addr1).makeBid(1,6);
+
+            auctionInfo = await market.getAuction(1);
+
+            expect(auctionInfo.owner).to.equal(owner.address);
+            expect(auctionInfo.lastBidder).to.equal(addr1.address);
+            expect(Number(auctionInfo.price)).to.equal(6);
+            expect(Number(auctionInfo.amountOfBids)).to.equal(1);
+            expect(auctionInfo.idItem).to.equal(1);
+            expect(auctionInfo.minBidStep).to.equal(1);
+            expect(auctionInfo.open).to.equal(true);
+        });
+
+        it('makeBid: should revert with "Can not make bid"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            await expect(market.connect(owner).makeBid(1,6))
+                .to.be.revertedWith('Can not make bid');
+        });
+
+        it('makeBid: should revert with "Insufficent funds"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+            
+            token.connect(addr1).approve(market.address, 900);
+                
+            await expect(market.connect(addr1).makeBid(1,5))
+                .to.be.revertedWith('Insufficent funds');
+        });
+
+        it('makeBid: should revert with "Insufficent funds"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+                
+            await expect(market.connect(addr2).makeBid(1,6))
+                .to.be.revertedWith('Insufficent funds');
+        });
+        
+        it('makeBid: should revert with "Auction closed"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            await market.connect(addr1).makeBid(1,8);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+            
+            await market.connect(owner)
+                .finishAuction(
+                    1,
+            );
+        
+            await expect(market.connect(addr1).makeBid(1,9))
+                .to.be.revertedWith('Auction closed');
+        });
+
+        it('makeBid: should revert with "Time is over"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+
+            await expect(market.connect(addr1).makeBid(1,9))
+                .to.be.revertedWith('Time is over');
+        });
+
+        it('makeBid: should revert with "Auction not exist"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+
+            await expect(market.connect(addr1).makeBid(5,9))
+                .to.be.revertedWith('Auction not exist');
+        });
+
+        it('makeBid: should emit "BidMaked"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+            
+            token.connect(addr1).approve(market.address, 900);
+                
+            await expect(market.connect(addr1).makeBid(1,6))
+            .to.emit(market, "BidMaked")
+            .withArgs(addr1.address, 6, 1, 1);
+        });
+
+        it('finishAuction: should finish auction', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            await market.connect(addr1).makeBid(1,8);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+            
+            await market.connect(owner)
+                .finishAuction(
+                    1,
+            );
+
+            auctionInfo = await market.getAuction(1);
+            itemInfo = await market.getItem(1);
+                
+            expect(Number(itemInfo.itemId)).to.equal(1);
+            expect(Number(itemInfo.price)).to.equal(0);
+            expect(itemInfo.nftContract).to.equal(mv.address);
+            expect(itemInfo.owner).to.equal(addr1.address);
+            expect(itemInfo.sale).to.equal(false);
+
+            expect(auctionInfo.owner).to.equal(owner.address);
+            expect(auctionInfo.lastBidder).to.equal(addr1.address);
+            expect(Number(auctionInfo.price)).to.equal(8);
+            expect(Number(auctionInfo.amountOfBids)).to.equal(3);
+            expect(auctionInfo.idItem).to.equal(1);
+            expect(auctionInfo.minBidStep).to.equal(1);
+            expect(auctionInfo.open).to.equal(false);
+        });
+
+        it('finishAuction: should revert with "Auction closed"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            await market.connect(addr1).makeBid(1,8);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+            
+            await market.connect(owner)
+                .finishAuction(
+                    1,
+            );
+
+            
+            await expect(market.connect(owner)
+            .finishAuction(
+                1,
+                ))
+                .to.be.revertedWith('Auction closed');
+        });
+
+        it('finishAuction: should revert with "Time is not over"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            await market.connect(addr1).makeBid(1,8);
+            
+            await expect(market.connect(owner)
+            .finishAuction(
+                1,
+                ))
+                .to.be.revertedWith('Time is not over');
+        });
+
+        it('finishAuction: should revert with "Auction not exist"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            await market.connect(addr1).makeBid(1,8);
+            
+            await expect(market.connect(owner)
+            .finishAuction(
+                5,
+                ))
+                .to.be.revertedWith('Auction not exist');
+        });
+
+        it('finishAuction: should revert with "Insufficent bids"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            
+            await expect(market.connect(owner)
+            .finishAuction(
+                1,
+                ))
+                .to.be.revertedWith('Insufficent bids');
+        });
+
+        it('finishAuction: should emit "AuctionFinished"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            await market.connect(addr1).makeBid(1,8);
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+            await expect(market.connect(owner)
+            .finishAuction(
+                1,
+            ))
+            .to.emit(market, "AuctionFinished")
+            .withArgs(1, true);
+        });
+
+        it('cancelAuction: should cancel auction', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+
+            await market.connect(owner)
+                .cancelAuction(
+                    1,
+            );
+
+            auctionInfo = await market.getAuction(1);
+            itemInfo = await market.getItem(1);
+                
+            expect(Number(itemInfo.itemId)).to.equal(1);
+            expect(Number(itemInfo.price)).to.equal(0);
+            expect(itemInfo.nftContract).to.equal(mv.address);
+            expect(itemInfo.owner).to.equal(owner.address);
+            expect(itemInfo.sale).to.equal(false);
+            
+            expect(auctionInfo.owner).to.equal(owner.address);
+            expect(auctionInfo.lastBidder).to.equal(addr1.address);
+            expect(Number(auctionInfo.price)).to.equal(6);
+            expect(Number(auctionInfo.amountOfBids)).to.equal(1);
+            expect(auctionInfo.idItem).to.equal(1);
+            expect(auctionInfo.minBidStep).to.equal(1);
+            expect(auctionInfo.open).to.equal(false);
+        });
+
+        it('cancelAuction: should revert with "Too many bids"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,7);
+            await market.connect(addr1).makeBid(1,8);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+
+            await expect(market.connect(owner)
+            .cancelAuction(
+                1,
+                ))
+                .to.be.revertedWith('Too many bids');
+        });
+
+        it('cancelAuction: should revert with "Not item owner"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+
+            await expect(market.connect(addr1)
+            .cancelAuction(
+                1,
+                ))
+                .to.be.revertedWith('Not item owner');
+        });
+
+        it('cancelAuction: should revert with "Time is not over"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+
+            await expect(market.connect(owner)
+            .cancelAuction(
+                1,
+                ))
+                .to.be.revertedWith("Time is not over");
+        });
+
+        it('cancelAuction: should emit "AuctionFinished"', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+            token.connect(addr1).approve(market.address, 900);
+         
+            await market.connect(addr1).makeBid(1,6);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+
+            await expect(market.connect(owner)
+            .cancelAuction(
+                1,
+                ))
+                .to.emit(market, "AuctionFinished")
+                .withArgs(1, false);
+        });
     });
 
     describe('View functions', () => {
@@ -469,10 +1135,35 @@ describe('NFTMarket contract', () => {
             expect(Number(itemInfo.price)).to.equal(100);
             expect(itemInfo.nftContract).to.equal(mv.address);
             expect(itemInfo.owner).to.equal(owner.address);
-            expect(itemInfo.sold).to.equal(false);
+            expect(itemInfo.sale).to.equal(true);
         });
 
-        
+        it('getItem: should get item information', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    4,
+                    1,
+                    5 
+            );
+
+            auctionInfo = await market.getAuction(1);
+
+            expect(auctionInfo.owner).to.equal(owner.address);
+            expect(auctionInfo.lastBidder).to.equal(zero_address);
+            expect(Number(auctionInfo.price)).to.equal(5);
+            expect(Number(auctionInfo.amountOfBids)).to.equal(0);
+            expect(auctionInfo.amountOfBids).to.equal(0);
+            expect(auctionInfo.idItem).to.equal(4);
+            expect(auctionInfo.minBidStep).to.equal(1);
+            expect(auctionInfo.open).to.equal(true);
+        });
     });
 });
 

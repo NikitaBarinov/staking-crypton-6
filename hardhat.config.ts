@@ -2,6 +2,7 @@ import { config as dotenvConfig } from 'dotenv';
 dotenvConfig();
 import { NetworkUserConfig } from 'hardhat/types';
 import 'hardhat-docgen'
+import "hardhat-gas-reporter"
 require('hardhat-contract-sizer');
 import '@nomiclabs/hardhat-waffle';
 import '@typechain/hardhat';
@@ -83,5 +84,13 @@ export default {
         disambiguatePaths: false,
         runOnCompile: true,
         strict: false,
+      },
+      gasReporter: {
+        // enabled by default
+        // enabled: process.env.GAS ? true : false,
+        currency: "USD",
+        token: "ETH",
+        gasPriceApi: "https://api.etherscan.io/api?module=proxy&action=eth_gasPrice",
+        coinmarketcap: process.env.CMC_API_KEY,
       },
 };

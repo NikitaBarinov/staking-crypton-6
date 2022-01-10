@@ -17,7 +17,9 @@ contract NFTMarket is Ownable, Pausable{
     //Counter for items id 
     Counters.Counter private _itemIds;
     //Counter for amount of sold items
-    Counters.Counter private _itemsSold; 
+    Counters.Counter private _itemsSold;
+    //Counter for auctions
+    Counters.Counter private _auctionIds; 
     
     address private nftContract;
     ACDM private token;
@@ -31,13 +33,42 @@ contract NFTMarket is Ownable, Pausable{
         uint256 itemId;
         uint256 price;
         address nftContract;
-        address seller;
         address owner;
-        bool sold;
+        bool sale;
     }
 
-    mapping(uint256 => MarketItem) private idToMarketItem;//itemId => marketItem
+    struct Auction{
+        address owner;
+        address lastBidder;
+        uint256 price;
+        uint256 amountOfBids;
+        uint256 minBidStep;
+        uint256 finishTime;
+        uint256 idItem;
+        bool open;
+    }
+
+    mapping(uint256 => Auction) auctions; //auctionID => Auction
+
+    mapping(uint256 => MarketItem) private idToMarketItem;//itemId => MarketItem
     
+    //Emitted when auction finished, if result == true auction succesfully finished
+    //if result == false auction canceled
+    event AuctionFinished(uint256 auctionId, bool result);
+
+    //Emitted when maked a bid
+    event BidMaked(address bidder, uint256 newPrice, uint256 auctioId, uint256 amountOfBids);
+
+    //Emitted when created auction for item
+    event AuctionStarted(
+        address owner,
+        uint256 startPrice,
+        uint256 minBidStep,
+        uint256 finishTime,
+        uint256 idAuction,
+        uint256 idItem
+    );
+
     //Emitted when created token for item
     event ItemCreated(
         address indexed owner,
@@ -48,10 +79,9 @@ contract NFTMarket is Ownable, Pausable{
     event MarketItemCreated (
         address indexed nftContract,
         address indexed owner,
-        address seller,
         uint256 indexed itemId,
         uint256 price,
-        bool sold
+        bool sale
     );
     
     //Emitted when item bought by new user
@@ -80,7 +110,6 @@ contract NFTMarket is Ownable, Pausable{
             itemId,
             0,
             nftContract,
-            address(0),
             _to,
             false
         );
@@ -109,15 +138,14 @@ contract NFTMarket is Ownable, Pausable{
         IERC721(nftContract).transferFrom(msg.sender, address(this), _itemId);
         
         idToMarketItem[_itemId].price = _price;
-        idToMarketItem[_itemId].sold = false;
+        idToMarketItem[_itemId].sale = true;
 
         emit MarketItemCreated(
             nftContract, 
             msg.sender,  
-            address(this),
             _itemId,
             _price,
-            false
+            true
         ); 
     }
 
@@ -126,14 +154,14 @@ contract NFTMarket is Ownable, Pausable{
      * @param _itemId Id of listed item.
     */
     function buyItem(uint256 _itemId) external whenNotPaused{
-        require(idToMarketItem[_itemId].sold == false, "Item already sold");
+        require(idToMarketItem[_itemId].sale == true, "Item already sold");
         require(idToMarketItem[_itemId].price <= IERC20(token).balanceOf(msg.sender), "Insufficent funds");
         require(idToMarketItem[_itemId].owner != msg.sender, "Can not buy by himself");
        
         IERC20(token).safeTransferFrom(msg.sender, idToMarketItem[_itemId].owner, idToMarketItem[_itemId].price);
         IERC721(nftContract).transferFrom(address(this), msg.sender, _itemId);
         
-        idToMarketItem[_itemId].sold = true;
+        idToMarketItem[_itemId].sale = false;
         idToMarketItem[_itemId].owner = msg.sender;
         
         emit ItemBought(
@@ -155,9 +183,124 @@ contract NFTMarket is Ownable, Pausable{
         IERC721(nftContract).transferFrom(address(this), msg.sender, _itemId);
        
         idToMarketItem[_itemId].price = 0;
-        idToMarketItem[_itemId].sold = false;
+        idToMarketItem[_itemId].sale = false;
 
         emit MarketItemCanceled( _itemId);
+    }
+
+    function listItemOnAuction(
+            uint256 _idItem, 
+            uint256 _minBidStep, 
+            uint256 _startPrice
+        ) external{
+        uint256 itemId = _itemIds.current();    
+        require(_idItem <= itemId, "Item does not exist");
+        require(idToMarketItem[_idItem].owner == msg.sender,"Not token owner");
+        require(idToMarketItem[_idItem].sale == false,"Item already sale");
+
+        IERC721(nftContract).transferFrom(msg.sender, address(this), _idItem);
+        idToMarketItem[_idItem].sale = true;
+        
+        _auctionIds.increment();
+        uint256 auctionIds = _auctionIds.current();
+        
+        auctions[auctionIds] = Auction(
+            msg.sender,
+            address(0),
+            _startPrice,
+            0,
+            _minBidStep,
+            (block.timestamp + (3 * 24 * 3600)),
+            _idItem,
+            true
+        );
+        
+        emit AuctionStarted(
+            msg.sender,
+            _startPrice,
+            _minBidStep,
+            (block.timestamp + (3 * 24 * 3600)),
+            auctionIds,
+            _idItem
+        );
+       
+    }
+
+    function makeBid(uint256 _auctionId, uint256 _newPrice) external {
+        Auction memory choisenAuction = auctions[_auctionId];
+        uint256 auctionIds = _auctionIds.current();
+        require(_auctionId <= auctionIds, "Auction not exist");
+        require(choisenAuction.open == true, "Auction closed");
+        require(choisenAuction.owner != msg.sender,"Can not make bid");
+        require(
+            (choisenAuction.price + choisenAuction.minBidStep) <= _newPrice && 
+            (_newPrice) <= IERC20(token).balanceOf(msg.sender), 
+            "Insufficent funds"
+        );
+        require(choisenAuction.finishTime > block.timestamp,"Time is over");
+        
+        transferToLastBidder(choisenAuction);
+
+        IERC20(token).safeTransferFrom(msg.sender, address(this), _newPrice);
+        
+        choisenAuction.amountOfBids ++;
+        choisenAuction.lastBidder = msg.sender;
+        choisenAuction.price = _newPrice;
+        auctions[_auctionId] = choisenAuction;
+
+        emit BidMaked(msg.sender, _newPrice, _auctionId, auctions[_auctionId].amountOfBids);
+    }
+
+    //read storage
+    function finishAuction(uint256 _auctionId) external {
+        uint256 auctionIds = _auctionIds.current();
+        Auction memory _auction = auctions[_auctionId];
+        require(_auctionId <= auctionIds, "Auction not exist");
+        require(_auction.open == true, "Auction closed");
+        require(_auction.amountOfBids > 2, "Insufficent bids");
+        require(_auction.finishTime <= block.timestamp,"Time is not over");
+        
+        IERC721(nftContract).transferFrom(address(this), _auction.lastBidder, _auction.idItem);
+        
+        idToMarketItem[_auction.idItem].owner = _auction.lastBidder;
+        
+        _cancelAuction(_auctionId);
+
+        emit AuctionFinished(_auctionId, true);
+    }   
+//modifiers
+
+    function cancelAuction(uint256 _auctionId) external{
+        Auction memory choisenAuction = auctions[_auctionId];
+        require(choisenAuction.open == true, "Auction closed");
+        require(choisenAuction.owner == msg.sender, "Not item owner");
+        require(choisenAuction.amountOfBids <= 2, "Too many bids");
+        require(choisenAuction.finishTime <= block.timestamp,"Time is not over");
+        
+        transferToLastBidder(choisenAuction);
+
+        IERC721(nftContract).transferFrom(address(this), choisenAuction.owner, choisenAuction.idItem);
+        
+        _cancelAuction(_auctionId);
+
+        emit AuctionFinished(_auctionId, false);
+    }
+
+    function transferToLastBidder(Auction memory _auction) private{
+        if(_auction.lastBidder != address(0)){
+            IERC20(token).safeTransfer(_auction.lastBidder, _auction.price);
+        }
+    }
+
+    function _cancelAuction(uint256 _auctionId) private{
+        idToMarketItem[auctions[_auctionId].idItem].sale = false;
+        auctions[_auctionId].open = false;
+    }
+
+    /** @notice Getter for auctions array.
+    */
+    function getAuction(uint256 _auctionId) external view returns(Auction memory){
+        return auctions[_auctionId];
     }
 
     /** @notice Getter for choisen item.
@@ -205,3 +348,4 @@ contract NFTMarket is Ownable, Pausable{
         return items;
     }
 }
+
