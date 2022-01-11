@@ -226,62 +226,79 @@ contract NFTMarket is Ownable, Pausable{
        
     }
 
-    function makeBid(uint256 _auctionId, uint256 _newPrice) external {
-        Auction memory choisenAuction = auctions[_auctionId];
+    modifier auctionExist(uint256 _auctionId){
         uint256 auctionIds = _auctionIds.current();
-        require(_auctionId <= auctionIds, "Auction not exist");
-        require(choisenAuction.open == true, "Auction closed");
-        require(choisenAuction.owner != msg.sender,"Can not make bid");
         require(
-            (choisenAuction.price + choisenAuction.minBidStep) <= _newPrice && 
+            _auctionId <= auctionIds &&
+            auctions[_auctionId].open == true, 
+        "Auction not exist"
+        );
+        _;
+    }
+
+    modifier auctionTimeOwner(uint256 _auctionId){
+        require(
+            auctions[_auctionId].finishTime <= block.timestamp &&
+            auctions[_auctionId].owner == msg.sender,
+            "Can not finish auction");
+        _;
+    }
+
+
+    function makeBid(
+        uint256 _auctionId, 
+        uint256 _newPrice
+        ) external 
+        auctionExist(_auctionId)
+        {
+       // Auction memory choisenAuction = auctions[_auctionId];
+        require(
+            auctions[_auctionId].owner != msg.sender &&
+            auctions[_auctionId].finishTime > block.timestamp
+            ,"Can not make bid");
+        require(
+            (auctions[_auctionId].price + auctions[_auctionId].minBidStep) <= _newPrice && 
             (_newPrice) <= IERC20(token).balanceOf(msg.sender), 
             "Insufficent funds"
         );
-        require(choisenAuction.finishTime > block.timestamp,"Time is over");
-        
-        transferToLastBidder(choisenAuction);
 
         IERC20(token).safeTransferFrom(msg.sender, address(this), _newPrice);
-        
-        choisenAuction.amountOfBids ++;
-        choisenAuction.lastBidder = msg.sender;
-        choisenAuction.price = _newPrice;
-        auctions[_auctionId] = choisenAuction;
 
+        transferToLastBidder(auctions[_auctionId]);
+        
+        auctions[_auctionId].amountOfBids ++;
+        auctions[_auctionId].lastBidder = msg.sender;
+        auctions[_auctionId].price = _newPrice;
+        
         emit BidMaked(msg.sender, _newPrice, _auctionId, auctions[_auctionId].amountOfBids);
     }
-
+    //getter for market auctions
     //read storage
-    function finishAuction(uint256 _auctionId) external {
-        uint256 auctionIds = _auctionIds.current();
-        Auction memory _auction = auctions[_auctionId];
-        require(_auctionId <= auctionIds, "Auction not exist");
-        require(_auction.open == true, "Auction closed");
-        require(_auction.amountOfBids > 2, "Insufficent bids");
-        require(_auction.finishTime <= block.timestamp,"Time is not over");
+    function finishAuction(
+        uint256 _auctionId
+    ) external 
+    auctionExist(_auctionId)
+    auctionTimeOwner(_auctionId){
+        require(auctions[_auctionId].amountOfBids > 2, "Insufficent bids");
         
-        IERC721(nftContract).transferFrom(address(this), _auction.lastBidder, _auction.idItem);
+        IERC20(token).safeTransfer(auctions[_auctionId].owner, auctions[_auctionId].price);
         
-        idToMarketItem[_auction.idItem].owner = _auction.lastBidder;
+        idToMarketItem[auctions[_auctionId].idItem].owner = auctions[_auctionId].lastBidder;
         
-        _cancelAuction(_auctionId);
+        _cancelAuction(_auctionId, auctions[_auctionId].lastBidder);
 
         emit AuctionFinished(_auctionId, true);
     }   
-//modifiers
 
-    function cancelAuction(uint256 _auctionId) external{
-        Auction memory choisenAuction = auctions[_auctionId];
-        require(choisenAuction.open == true, "Auction closed");
-        require(choisenAuction.owner == msg.sender, "Not item owner");
-        require(choisenAuction.amountOfBids <= 2, "Too many bids");
-        require(choisenAuction.finishTime <= block.timestamp,"Time is not over");
+    function cancelAuction(
+        uint256 _auctionId
+    ) external
+    auctionExist(_auctionId)
+    auctionTimeOwner(_auctionId){
+        require(auctions[_auctionId].amountOfBids <= 2, "Too many bids");
         
-        transferToLastBidder(choisenAuction);
-
-        IERC721(nftContract).transferFrom(address(this), choisenAuction.owner, choisenAuction.idItem);
-        
-        _cancelAuction(_auctionId);
+        transferToLastBidder(auctions[_auctionId]);
+        _cancelAuction(_auctionId, auctions[_auctionId].owner);
 
         emit AuctionFinished(_auctionId, false);
     }
@@ -292,9 +309,10 @@ contract NFTMarket is Ownable, Pausable{
         }
     }
 
-    function _cancelAuction(uint256 _auctionId) private{
+    function _cancelAuction(uint256 _auctionId, address _to) private{
         idToMarketItem[auctions[_auctionId].idItem].sale = false;
         auctions[_auctionId].open = false;
+        IERC721(nftContract).transferFrom(address(this), _to, auctions[_auctionId].idItem);
     }
 
     /** @notice Getter for auctions array.

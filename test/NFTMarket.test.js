@@ -625,7 +625,7 @@ describe('NFTMarket contract', () => {
                 .to.be.revertedWith('Insufficent funds');
         });
         
-        it('makeBid: should revert with "Auction closed"', async () => {
+        it('makeBid: should revert with "Auction not exist"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -654,11 +654,11 @@ describe('NFTMarket contract', () => {
                     1,
             );
         
-            await expect(market.connect(addr1).makeBid(1,9))
-                .to.be.revertedWith('Auction closed');
+            await expect(market.connect(owner).makeBid(1,9))
+                .to.be.revertedWith('Auction not exist');
         });
 
-        it('makeBid: should revert with "Time is over"', async () => {
+        it('makeBid: should revert with "Can not make bid"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -682,7 +682,7 @@ describe('NFTMarket contract', () => {
             await network.provider.send("evm_mine");
 
             await expect(market.connect(addr1).makeBid(1,9))
-                .to.be.revertedWith('Time is over');
+                .to.be.revertedWith('Can not make bid');
         });
 
         it('makeBid: should revert with "Auction not exist"', async () => {
@@ -775,7 +775,7 @@ describe('NFTMarket contract', () => {
             expect(auctionInfo.open).to.equal(false);
         });
 
-        it('finishAuction: should revert with "Auction closed"', async () => {
+        it('finishAuction: should revert with "Auction not exist"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -809,10 +809,10 @@ describe('NFTMarket contract', () => {
             .finishAuction(
                 1,
                 ))
-                .to.be.revertedWith('Auction closed');
+                .to.be.revertedWith('Auction not exist');
         });
 
-        it('finishAuction: should revert with "Time is not over"', async () => {
+        it('finishAuction: should revert with "Can not finish auction"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -837,7 +837,7 @@ describe('NFTMarket contract', () => {
             .finishAuction(
                 1,
                 ))
-                .to.be.revertedWith('Time is not over');
+                .to.be.revertedWith('Can not finish auction');
         });
 
         it('finishAuction: should revert with "Auction not exist"', async () => {
@@ -888,6 +888,9 @@ describe('NFTMarket contract', () => {
             await market.connect(addr1).makeBid(1,6);
             await market.connect(addr1).makeBid(1,7);
             
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+
             await expect(market.connect(owner)
             .finishAuction(
                 1,
@@ -915,8 +918,10 @@ describe('NFTMarket contract', () => {
             await market.connect(addr1).makeBid(1,6);
             await market.connect(addr1).makeBid(1,7);
             await market.connect(addr1).makeBid(1,8);
+
             await network.provider.send("evm_increaseTime", [259202])
             await network.provider.send("evm_mine");
+
             await expect(market.connect(owner)
             .finishAuction(
                 1,
@@ -1001,7 +1006,7 @@ describe('NFTMarket contract', () => {
                 .to.be.revertedWith('Too many bids');
         });
 
-        it('cancelAuction: should revert with "Not item owner"', async () => {
+        it('cancelAuction: should revert with "Can not finish auction"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -1024,10 +1029,10 @@ describe('NFTMarket contract', () => {
             .cancelAuction(
                 1,
                 ))
-                .to.be.revertedWith('Not item owner');
+                .to.be.revertedWith('Can not finish auction');
         });
 
-        it('cancelAuction: should revert with "Time is not over"', async () => {
+        it('cancelAuction: should revert with "Can not finish auction"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -1050,7 +1055,7 @@ describe('NFTMarket contract', () => {
             .cancelAuction(
                 1,
                 ))
-                .to.be.revertedWith("Time is not over");
+                .to.be.revertedWith("Can not finish auction");
         });
 
         it('cancelAuction: should emit "AuctionFinished"', async () => {
