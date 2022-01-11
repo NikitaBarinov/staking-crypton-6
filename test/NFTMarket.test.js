@@ -180,7 +180,7 @@ describe('NFTMarket contract', () => {
             .to.be.revertedWith('Not token owner');
         });
 
-        it('listItem: should reverted with "Item does not exist"', async () => {
+        it('listItem: should reverted with "Not token owner"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -192,7 +192,7 @@ describe('NFTMarket contract', () => {
                     100,
                     100
                 ))
-            .to.be.revertedWith('Item does not exist');
+            .to.be.revertedWith('Not token owner');
         });
 
         it('listItem: should reverted with "Price must be bigger then zero"', async () => {
@@ -357,7 +357,7 @@ describe('NFTMarket contract', () => {
             expect(itemInfo.sale).to.equal(false);
         });
 
-        it('cancel: should reverted with "You are not item owner"', async () => {
+        it('cancel: should reverted with "Not token owner"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -375,10 +375,10 @@ describe('NFTMarket contract', () => {
                 .cancel(
                     1
                 ))
-            .to.be.revertedWith('You are not item owner');
+            .to.be.revertedWith('Not token owner');
         });
 
-        it('cancel: should reverted with "Item not sale"', async () => {
+        it('cancel: should reverted with "Item sale"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -390,7 +390,7 @@ describe('NFTMarket contract', () => {
                 .cancel(
                     1
                 ))
-            .to.be.revertedWith('Item not sale');
+            .to.be.revertedWith('Item sale');
         });
 
         it('cancel: should emit "MarketItemCanceled"', async () => {
@@ -490,7 +490,7 @@ describe('NFTMarket contract', () => {
             .to.be.revertedWith('Item already sale');
         });
 
-        it('listItemOnAuction: to be revet with "Item does not exist"', async () => {
+        it('listItemOnAuction: to emit "AuctionStarted"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -498,30 +498,13 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await expect(market
+            await expect(market.connect(owner)
             .listItemOnAuction(
                 5,
                 1,
                 5 
             ))
-            .to.be.revertedWith('Item does not exist');
-        });
-
-        it('listItemOnAuction: to emit "Item does not exist"', async () => {
-            await mv.connect(owner).setApprovalForAll(market.address, true);
-            await market
-                .createItem(
-                    owner.address,
-                    ramsesURI
-                );
-            
-            await expect(market
-            .listItemOnAuction(
-                5,
-                1,
-                5 
-            ))
-            .to.be.revertedWith('Item does not exist');
+            .to.be.revertedWith('Not token owner');
             await expect(
                 market
                 .connect(owner)
