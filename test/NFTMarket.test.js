@@ -8,6 +8,7 @@ describe('NFTMarket contract', () => {
    
     const minterRole =ethers.utils.solidityKeccak256(["string"],["MINTER_ROLE"]);
     const burnerRole =ethers.utils.solidityKeccak256(["string"],["BURNER_ROLE"]);
+    const pauserRole =ethers.utils.solidityKeccak256(["string"],["PAUSER_ROLE"]);
     const zero_address = "0x0000000000000000000000000000000000000000";
     const ramsesURI = (testData.metadata).toString();
 
@@ -50,6 +51,18 @@ describe('NFTMarket contract', () => {
 
         it('Should set minter role for owner', async () => {
             expect(await token.hasRole(minterRole, owner.address)).to.equal(true);
+        });
+
+        it('Should set admin role for owner', async () => {
+            expect(await market.hasRole(adminRole, owner.address)).to.equal(true);
+        });
+
+        it('Should set minter role for owner', async () => {
+            expect(await market.hasRole(minterRole, owner.address)).to.equal(true);
+        });
+
+        it('Should set pauser role for owner', async () => {
+            expect(await market.hasRole(pauserRole, owner.address)).to.equal(true);
         });
 
         it('Should set burner role for owner', async () => {
@@ -96,11 +109,6 @@ describe('NFTMarket contract', () => {
             expect(itemInfo.owner).to.equal(owner.address);
         });
 
-        it('Pausable: should be reverted with "Ownable: caller is not the owner"', async () => {
-            await expect(market.connect(addr1).pause())
-            .to.be.revertedWith('Ownable: caller is not the owner'); 
-        });
-
         it('createItem: should create item', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
@@ -115,17 +123,6 @@ describe('NFTMarket contract', () => {
             expect(itemInfo.nftContract).to.equal(mv.address);
             expect(itemInfo.owner).to.equal(owner.address);
             expect(itemInfo.sale).to.equal(false);
-        });
-
-        it('createItem: should reverted with "Ownable: caller is not the owner"', async () => {
-            await mv.connect(owner).setApprovalForAll(market.address, true);
-        
-            await expect(market.connect(addr1)
-            .createItem(
-                owner.address,
-                ramsesURI
-            ))
-            .to.be.revertedWith('Ownable: caller is not the owner');
         });
 
         it('createItem: should emit "ItemCreated"', async () => {
@@ -1093,6 +1090,17 @@ describe('NFTMarket contract', () => {
                     addr1.address,
                     ramsesURI
                 );
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                )
 
             await market
                 .listItem(
@@ -1116,6 +1124,30 @@ describe('NFTMarket contract', () => {
             expect(Number(marketItems[1].price)).to.equal(Number(itemInfo3.price));
         });
 
+        it('fetchAuctionItems: should get all auction items', async () => {
+            await market.connect(owner)
+                .listItemOnAuction(
+                    4,
+                    1,
+                    5 
+            );
+            await market.connect(owner)
+                .listItemOnAuction(
+                    5,
+                    1,
+                    5 
+            );
+
+            const marketItems = await market.fetchAuctionItems();
+            itemInfo1 = await market.getItem(4);
+            itemInfo3 = await market.getItem(5);
+
+            expect(Number(marketItems[0].price)).to.equal(0);
+            expect(Number(marketItems[1].price)).to.equal(0);
+            expect(marketItems[0].sale).to.equal(true);
+            expect(marketItems[1].sale).to.equal(true);
+        });
+
         it('getItem: should get item information', async () => {
             itemInfo = await market.getItem(1);
     
@@ -1126,21 +1158,13 @@ describe('NFTMarket contract', () => {
             expect(itemInfo.sale).to.equal(true);
         });
 
-        it('getItem: should get item information', async () => {
-            await mv.connect(owner).setApprovalForAll(market.address, true);
-            await market
-                .createItem(
-                    owner.address,
-                    ramsesURI
-                );
-            
+        it('getAuction: should get auction information', async () => {
             await market.connect(owner)
-                .listItemOnAuction(
-                    4,
-                    1,
-                    5 
+            .listItemOnAuction(
+                5,
+                1,
+                5 
             );
-
             auctionInfo = await market.getAuction(1);
 
             expect(auctionInfo.owner).to.equal(owner.address);
@@ -1148,7 +1172,7 @@ describe('NFTMarket contract', () => {
             expect(Number(auctionInfo.price)).to.equal(5);
             expect(Number(auctionInfo.amountOfBids)).to.equal(0);
             expect(auctionInfo.amountOfBids).to.equal(0);
-            expect(auctionInfo.idItem).to.equal(4);
+            expect(auctionInfo.idItem).to.equal(5);
             expect(auctionInfo.minBidStep).to.equal(1);
             expect(auctionInfo.open).to.equal(true);
         });
