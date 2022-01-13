@@ -54,23 +54,23 @@ contract NFTMarket is AccessControl, Pausable{
         bool open;
     }
 
-    mapping(uint256 => Auction) auctions; //auctionID => Auction
+    mapping(uint256 => Auction) private auctions; //auctionID => Auction
 
     mapping(uint256 => MarketItem) private idToMarketItem;//itemId => MarketItem
     
     //Emitted when auction time changed
     event AuctionTimeChanged(uint256 _newAuctionTime);
-    //question1
+    
     //Emitted when auction finished, if result == true auction succesfully finished
     //if result == false auction canceled
     event AuctionFinished(uint256 auctionId, bool result);
 
     //Emitted when maked a bid
-    event BidMaked(address bidder, uint256 newPrice, uint256 auctioId, uint256 amountOfBids);
+    event BidMaked(address indexed bidder, uint256 newPrice, uint256 indexed auctioId, uint256 amountOfBids);
 
     //Emitted when created auction for item
     event AuctionStarted(
-        address owner,
+        address indexed owner,
         uint256 startPrice,
         uint256 minBidStep,
         uint256 finishTime,
@@ -118,7 +118,12 @@ contract NFTMarket is AccessControl, Pausable{
     }
 
     modifier itemSale(uint256 _itemId){
-        require(idToMarketItem[_itemId].sale == true, "Item sale");
+        require(idToMarketItem[_itemId].sale == true, "Item not sale");
+        _;
+    }
+
+    modifier itemNotSale(uint256 _itemId){
+        require(idToMarketItem[_itemId].sale == false, "Item sale");
         _;
     }
 
@@ -127,15 +132,13 @@ contract NFTMarket is AccessControl, Pausable{
         _;
     }
 
-
     /** @notice Change time of auction.
      * @dev Change period of time for auction, emit AuctionTimeChanged event.
      * @param _newAuctionTime new time period for auction
     */
-    function changeAucionTime(uint256 _newAuctionTime) external onlyRole(DEFAULT_ADMIN_ROLE){
+    function changeAuctionTime(uint256 _newAuctionTime) external onlyRole(DEFAULT_ADMIN_ROLE){
         auctionTime = _newAuctionTime;
         emit AuctionTimeChanged(auctionTime);
-        
     }
     
     /** @notice Create token on ERC721 contract and on this.
@@ -179,9 +182,10 @@ contract NFTMarket is AccessControl, Pausable{
     ) external 
     whenNotPaused
     itemOwner(_itemId)
+    itemNotSale(_itemId)
     {
         require(_price > 0,"Price must be bigger then zero");
-
+       
         _listItem(_itemId);
         idToMarketItem[_itemId].price = _price;
 
@@ -200,7 +204,9 @@ contract NFTMarket is AccessControl, Pausable{
     */
     function buyItem(uint256 _itemId) external whenNotPaused
     itemSale(_itemId){
-        require(idToMarketItem[_itemId].price <= IERC20(token).balanceOf(msg.sender), "Insufficent funds");
+        require(
+            idToMarketItem[_itemId].price <= IERC20(token).balanceOf(msg.sender) &&
+            idToMarketItem[_itemId].price > 0, "Insufficent funds");
         require(idToMarketItem[_itemId].owner != msg.sender, "Can not buy by himself");
        
         IERC20(token).safeTransferFrom(msg.sender, idToMarketItem[_itemId].owner, idToMarketItem[_itemId].price);
@@ -225,7 +231,7 @@ contract NFTMarket is AccessControl, Pausable{
     itemSale(_itemId)
     itemOwner(_itemId){
         require(idToMarketItem[_itemId].price > 0, "Item not sale");
-       //item sale
+       
         cancelItem_( _itemId,  msg.sender);
         idToMarketItem[_itemId].price = 0;
 
@@ -245,10 +251,9 @@ contract NFTMarket is AccessControl, Pausable{
             uint256 _minBidStep, 
             uint256 _startPrice
         ) external
-        itemOwner(_idItem){
+        itemOwner(_idItem)
+        itemNotSale(_idItem){
         //if item owner exist, item also exist ?
-        require(idToMarketItem[_idItem].sale == false,"Item already sale");
-        
         _listItem(_idItem);
     
         _auctionIds.increment();
@@ -308,8 +313,6 @@ contract NFTMarket is AccessControl, Pausable{
         
         emit BidMaked(msg.sender, _newPrice, _auctionId, auctions[_auctionId].amountOfBids);
     }
-
-    //getter for market auctions
 
     /** @notice Finish auction with send ERC20 token to owner of item and send ERC721 token to lastBidder.
      * @dev Finish successful auction, emit AuctionFinished event.
@@ -417,7 +420,7 @@ contract NFTMarket is AccessControl, Pausable{
         _pause();
     }
     
-    /** @notice Fetch array of auction items.
+    /** @notice Fetch array of auctions.
     */
     function fetchAuctionItems() public view returns(MarketItem[] memory){
         uint256 itemCount = _itemIds.current();

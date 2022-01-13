@@ -326,6 +326,57 @@ describe('NFTMarket contract', () => {
             .withArgs(market.address, addr1.address, 1);
         });
 
+        it('buyItem: can not buy listed on auction item', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+                .listItemOnAuction(
+                    1,
+                    1,
+                    5 
+            );
+
+
+            token.connect(addr1).approve(market.address, 900);
+            await market.connect(addr1).makeBid(1,6);
+            itemInfo = await market.getItem(1);
+                
+            expect(Number(itemInfo.itemId)).to.equal(1);
+            expect(Number(itemInfo.price)).to.equal(0);
+            expect(itemInfo.nftContract).to.equal(mv.address);
+            expect(itemInfo.owner).to.equal(owner.address);
+            expect(itemInfo.sale).to.equal(true);
+
+            await expect(market.connect(addr2)
+                .buyItem(
+                    1
+                ))
+            .to.be.revertedWith('Insufficent funds');
+
+            itemInfo = await market.getItem(1);
+                
+            expect(Number(itemInfo.itemId)).to.equal(1);
+            expect(Number(itemInfo.price)).to.equal(0);
+            expect(itemInfo.nftContract).to.equal(mv.address);
+            expect(itemInfo.owner).to.equal(owner.address);
+            expect(itemInfo.sale).to.equal(true);
+
+            auctionInfo = await market.getAuction(1);
+
+            expect(auctionInfo.owner).to.equal(owner.address);
+            expect(auctionInfo.lastBidder).to.equal(addr1.address);
+            expect(Number(auctionInfo.price)).to.equal(6);
+            expect(Number(auctionInfo.amountOfBids)).to.equal(1);
+            expect(auctionInfo.idItem).to.equal(1);
+            expect(auctionInfo.minBidStep).to.equal(1);
+            expect(auctionInfo.open).to.equal(true);
+        });
+
         it('cancel: should cancel sales item', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
@@ -375,7 +426,7 @@ describe('NFTMarket contract', () => {
             .to.be.revertedWith('Not token owner');
         });
 
-        it('cancel: should reverted with "Item sale"', async () => {
+        it('cancel: should reverted with "Item not sale"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -387,7 +438,7 @@ describe('NFTMarket contract', () => {
                 .cancel(
                     1
                 ))
-            .to.be.revertedWith('Item sale');
+            .to.be.revertedWith('Item not sale');
         });
 
         it('cancel: should emit "MarketItemCanceled"', async () => {
@@ -456,7 +507,6 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-
             await expect(market.connect(addr1)
             .listItemOnAuction(
                 1,
@@ -466,7 +516,30 @@ describe('NFTMarket contract', () => {
             .to.be.revertedWith('Not token owner');
         });
 
-        it('listItemOnAuction: to be revet with "Item already sale"', async () => {
+        
+        it('listItemOnAuction: can not list listed item on auction', async () => {
+            await mv.connect(owner).setApprovalForAll(market.address, true);
+            await market
+                .createItem(
+                    owner.address,
+                    ramsesURI
+                );
+            
+            await market.connect(owner)
+            .listItemOnAuction(
+                1,
+                1,
+                5 
+            );
+            await expect(market
+                .listItem(
+                    1,
+                    100
+                ))
+            .to.be.revertedWith('Item sale');
+        });
+
+        it('listItemOnAuction: to be revet with "Item sale"', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
                 .createItem(
@@ -484,7 +557,7 @@ describe('NFTMarket contract', () => {
                 1,
                 5 
             ))
-            .to.be.revertedWith('Item already sale');
+            .to.be.revertedWith('Item sale');
         });
 
         it('listItemOnAuction: to emit "AuctionStarted"', async () => {
@@ -1067,8 +1140,15 @@ describe('NFTMarket contract', () => {
                 .to.emit(market, "AuctionFinished")
                 .withArgs(1, false);
         });
-    });
 
+        it('changeAuctionTime: should change auction time and emit "AuctionTimeChanged"', async () => {
+           await expect(market.connect(owner).changeAuctionTime(100)
+           )
+               .to.emit(market, "AuctionTimeChanged")
+               .withArgs(100);
+        });
+    });
+ 
     describe('View functions', () => {
         beforeEach(async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);

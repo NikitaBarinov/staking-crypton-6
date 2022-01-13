@@ -78,7 +78,7 @@ export interface NFTMarketInterface extends utils.Interface {
     "buyItem(uint256)": FunctionFragment;
     "cancel(uint256)": FunctionFragment;
     "cancelAuction(uint256)": FunctionFragment;
-    "changeAucionTime(uint256)": FunctionFragment;
+    "changeAuctionTime(uint256)": FunctionFragment;
     "createItem(address,string)": FunctionFragment;
     "fetchAuctionItems()": FunctionFragment;
     "fetchMarketItems()": FunctionFragment;
@@ -124,7 +124,7 @@ export interface NFTMarketInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "changeAucionTime",
+    functionFragment: "changeAuctionTime",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -210,7 +210,7 @@ export interface NFTMarketInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "changeAucionTime",
+    functionFragment: "changeAuctionTime",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "createItem", data: BytesLike): Result;
@@ -439,7 +439,7 @@ export interface NFTMarket extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    changeAucionTime(
+    changeAuctionTime(
       _newAuctionTime: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -555,7 +555,7 @@ export interface NFTMarket extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  changeAucionTime(
+  changeAuctionTime(
     _newAuctionTime: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -665,7 +665,7 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    changeAucionTime(
+    changeAuctionTime(
       _newAuctionTime: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
@@ -767,7 +767,7 @@ export interface NFTMarket extends BaseContract {
     ): AuctionFinishedEventFilter;
 
     "AuctionStarted(address,uint256,uint256,uint256,uint256,uint256)"(
-      owner?: null,
+      owner?: string | null,
       startPrice?: null,
       minBidStep?: null,
       finishTime?: null,
@@ -775,7 +775,7 @@ export interface NFTMarket extends BaseContract {
       idItem?: null
     ): AuctionStartedEventFilter;
     AuctionStarted(
-      owner?: null,
+      owner?: string | null,
       startPrice?: null,
       minBidStep?: null,
       finishTime?: null,
@@ -789,15 +789,15 @@ export interface NFTMarket extends BaseContract {
     AuctionTimeChanged(_newAuctionTime?: null): AuctionTimeChangedEventFilter;
 
     "BidMaked(address,uint256,uint256,uint256)"(
-      bidder?: null,
+      bidder?: string | null,
       newPrice?: null,
-      auctioId?: null,
+      auctioId?: BigNumberish | null,
       amountOfBids?: null
     ): BidMakedEventFilter;
     BidMaked(
-      bidder?: null,
+      bidder?: string | null,
       newPrice?: null,
-      auctioId?: null,
+      auctioId?: BigNumberish | null,
       amountOfBids?: null
     ): BidMakedEventFilter;
 
@@ -900,7 +900,7 @@ export interface NFTMarket extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    changeAucionTime(
+    changeAuctionTime(
       _newAuctionTime: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -1018,7 +1018,7 @@ export interface NFTMarket extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    changeAucionTime(
+    changeAuctionTime(
       _newAuctionTime: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
