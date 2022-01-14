@@ -980,7 +980,7 @@ describe('NFTMarket contract', () => {
                 1,
             ))
             .to.emit(market, "AuctionFinished")
-            .withArgs(1, true);
+            .withArgs(addr1.address, 1, true);
         });
 
         it('cancelAuction: should cancel auction', async () => {
@@ -1138,14 +1138,26 @@ describe('NFTMarket contract', () => {
                 1,
                 ))
                 .to.emit(market, "AuctionFinished")
-                .withArgs(1, false);
+                .withArgs(owner.address, 1, false);
         });
 
         it('changeAuctionTime: should change auction time and emit "AuctionTimeChanged"', async () => {
-           await expect(market.connect(owner).changeAuctionTime(100)
-           )
-               .to.emit(market, "AuctionTimeChanged")
-               .withArgs(100);
+            await expect(market.connect(owner).changeAuctionTime(Number(24 * 2 * 3600))
+            )
+            .to.emit(market, "AuctionTimeChanged")
+            .withArgs(172800);
+        });
+
+        it('changeAuctionTime: should revert with "Time must be between 1st and 5th days"', async () => {
+            await expect(market.connect(owner).changeAuctionTime(Number(3600))
+            )
+            .to.be.revertedWith("Time must be between 1st and 5th days");
+        });
+
+        it('changeAuctionTime: should revert with "Time must be between 1st and 5th days"', async () => {
+            await expect(market.connect(owner).changeAuctionTime(Number(24 * 6 * 3600))
+            )
+            .to.be.revertedWith("Time must be between 1st and 5th days");
         });
     });
  

@@ -23,9 +23,9 @@ contract NFTMarket is AccessControl, Pausable{
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     
-    uint256 auctionTime = 3 * 24 * 3600; 
-    address private nftContract;
-    ACDM private token;
+    uint256 public auctionTime = 3 * 24 * 3600; 
+    address public nftContract;
+    ACDM public token;
 
     constructor(address _nftContract, address _voteToken) {
         token = ACDM(_voteToken);
@@ -46,12 +46,12 @@ contract NFTMarket is AccessControl, Pausable{
     struct Auction{
         address owner;
         address lastBidder;
+        bool open;
         uint256 price;
         uint256 amountOfBids;
         uint256 minBidStep;
         uint256 finishTime;
         uint256 idItem;
-        bool open;
     }
 
     mapping(uint256 => Auction) private auctions; //auctionID => Auction
@@ -63,7 +63,7 @@ contract NFTMarket is AccessControl, Pausable{
     
     //Emitted when auction finished, if result == true auction succesfully finished
     //if result == false auction canceled
-    event AuctionFinished(uint256 auctionId, bool result);
+    event AuctionFinished(address indexed bidderWiner, uint256 auctionId, bool result);
 
     //Emitted when maked a bid
     event BidMaked(address indexed bidder, uint256 newPrice, uint256 indexed auctioId, uint256 amountOfBids);
@@ -109,7 +109,7 @@ contract NFTMarket is AccessControl, Pausable{
         _;
     }
 
-    modifier auctionTimeOwner(uint256 _auctionId){
+    modifier auctionTimeOverAndItemOwner(uint256 _auctionId){
         require(
             auctions[_auctionId].finishTime <= block.timestamp &&
             auctions[_auctionId].owner == msg.sender,
@@ -137,6 +137,10 @@ contract NFTMarket is AccessControl, Pausable{
      * @param _newAuctionTime new time period for auction
     */
     function changeAuctionTime(uint256 _newAuctionTime) external onlyRole(DEFAULT_ADMIN_ROLE){
+        require(
+            _newAuctionTime >= (24 * 3600) &&
+            _newAuctionTime <= (5 * 24 * 3600),
+        "Time must be between 1st and 5th days");
         auctionTime = _newAuctionTime;
         emit AuctionTimeChanged(auctionTime);
     }
@@ -262,12 +266,12 @@ contract NFTMarket is AccessControl, Pausable{
         auctions[auctionIds] = Auction(
             msg.sender,
             address(0),
+            true,
             _startPrice,
             0,
             _minBidStep,
             (block.timestamp + auctionTime),
-            _idItem,
-            true
+            _idItem
         );
         
         emit AuctionStarted(
@@ -305,7 +309,7 @@ contract NFTMarket is AccessControl, Pausable{
         
         IERC20(token).safeTransferFrom(msg.sender, address(this), _newPrice);
 
-        transferToLastBidder(auctions[_auctionId]);
+        transferToLastBidder(auctions[_auctionId].lastBidder,auctions[_auctionId].price);
         
         auctions[_auctionId].amountOfBids ++;
         auctions[_auctionId].lastBidder = msg.sender;
@@ -322,16 +326,16 @@ contract NFTMarket is AccessControl, Pausable{
         uint256 _auctionId
     ) external 
     auctionExist(_auctionId)
-    auctionTimeOwner(_auctionId){
+    auctionTimeOverAndItemOwner(_auctionId){
         require(auctions[_auctionId].amountOfBids > 2, "Insufficent bids");
         
         IERC20(token).safeTransfer(auctions[_auctionId].owner, auctions[_auctionId].price);
         
         idToMarketItem[auctions[_auctionId].idItem].owner = auctions[_auctionId].lastBidder;
         
-        _cancelAuction(_auctionId, auctions[_auctionId].lastBidder);
+        _closeAuction(_auctionId, auctions[_auctionId].lastBidder);
 
-        emit AuctionFinished(_auctionId, true);
+        emit AuctionFinished(auctions[_auctionId].lastBidder, _auctionId, true);
     }   
 
 
@@ -343,23 +347,24 @@ contract NFTMarket is AccessControl, Pausable{
         uint256 _auctionId
     ) external
     auctionExist(_auctionId)
-    auctionTimeOwner(_auctionId){
+    auctionTimeOverAndItemOwner(_auctionId){
         require(auctions[_auctionId].amountOfBids <= 2, "Too many bids");
         
-        transferToLastBidder(auctions[_auctionId]);
-        _cancelAuction(_auctionId, auctions[_auctionId].owner);
+        transferToLastBidder(auctions[_auctionId].lastBidder,auctions[_auctionId].price);
+        _closeAuction(_auctionId, auctions[_auctionId].owner);
 
-        emit AuctionFinished(_auctionId, false);
+        emit AuctionFinished(auctions[_auctionId].owner, _auctionId, false);
     }
 
 
     /** @notice Transfer ERC20 tokens to lastBidder if he exist.
      * @dev Use for return ERC20 to last bidder.
-     * @param _auction Auction struct.
+     * @param _to Address of lasst bidder.
+     * @param _price Amount of ERC20 tokens deposited by last bidder.
     */
-    function transferToLastBidder(Auction memory _auction) private{
-        if(_auction.lastBidder != address(0)){
-            IERC20(token).safeTransfer(_auction.lastBidder, _auction.price);
+    function transferToLastBidder(address _to, uint256 _price) private{
+        if(_to != address(0)){
+            IERC20(token).safeTransfer(_to, _price);
         }
     }
 
@@ -368,7 +373,7 @@ contract NFTMarket is AccessControl, Pausable{
      * @param _auctionId Id of cloasble auction.
      * @param _to Address of item receiver.
     */
-    function _cancelAuction(uint256 _auctionId, address _to) private{
+    function _closeAuction(uint256 _auctionId, address _to) private{
         auctions[_auctionId].open = false;
         cancelItem_(auctions[_auctionId].idItem, _to);
     }

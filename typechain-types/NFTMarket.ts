@@ -42,32 +42,32 @@ export type MarketItemStructOutput = [
 export type AuctionStruct = {
   owner: string;
   lastBidder: string;
+  open: boolean;
   price: BigNumberish;
   amountOfBids: BigNumberish;
   minBidStep: BigNumberish;
   finishTime: BigNumberish;
   idItem: BigNumberish;
-  open: boolean;
 };
 
 export type AuctionStructOutput = [
   string,
   string,
+  boolean,
   BigNumber,
   BigNumber,
   BigNumber,
   BigNumber,
-  BigNumber,
-  boolean
+  BigNumber
 ] & {
   owner: string;
   lastBidder: string;
+  open: boolean;
   price: BigNumber;
   amountOfBids: BigNumber;
   minBidStep: BigNumber;
   finishTime: BigNumber;
   idItem: BigNumber;
-  open: boolean;
 };
 
 export interface NFTMarketInterface extends utils.Interface {
@@ -75,6 +75,7 @@ export interface NFTMarketInterface extends utils.Interface {
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "MINTER_ROLE()": FunctionFragment;
     "PAUSER_ROLE()": FunctionFragment;
+    "auctionTime()": FunctionFragment;
     "buyItem(uint256)": FunctionFragment;
     "cancel(uint256)": FunctionFragment;
     "cancelAuction(uint256)": FunctionFragment;
@@ -91,11 +92,13 @@ export interface NFTMarketInterface extends utils.Interface {
     "listItem(uint256,uint256)": FunctionFragment;
     "listItemOnAuction(uint256,uint256,uint256)": FunctionFragment;
     "makeBid(uint256,uint256)": FunctionFragment;
+    "nftContract()": FunctionFragment;
     "pause()": FunctionFragment;
     "paused()": FunctionFragment;
     "renounceRole(bytes32,address)": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
+    "token()": FunctionFragment;
     "unpause()": FunctionFragment;
   };
 
@@ -109,6 +112,10 @@ export interface NFTMarketInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "PAUSER_ROLE",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "auctionTime",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -175,6 +182,10 @@ export interface NFTMarketInterface extends utils.Interface {
     functionFragment: "makeBid",
     values: [BigNumberish, BigNumberish]
   ): string;
+  encodeFunctionData(
+    functionFragment: "nftContract",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
   encodeFunctionData(
@@ -189,6 +200,7 @@ export interface NFTMarketInterface extends utils.Interface {
     functionFragment: "supportsInterface",
     values: [BytesLike]
   ): string;
+  encodeFunctionData(functionFragment: "token", values?: undefined): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
 
   decodeFunctionResult(
@@ -201,6 +213,10 @@ export interface NFTMarketInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "PAUSER_ROLE",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "auctionTime",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "buyItem", data: BytesLike): Result;
@@ -240,6 +256,10 @@ export interface NFTMarketInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "makeBid", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "nftContract",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "paused", data: BytesLike): Result;
   decodeFunctionResult(
@@ -251,10 +271,11 @@ export interface NFTMarketInterface extends utils.Interface {
     functionFragment: "supportsInterface",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "token", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
 
   events: {
-    "AuctionFinished(uint256,bool)": EventFragment;
+    "AuctionFinished(address,uint256,bool)": EventFragment;
     "AuctionStarted(address,uint256,uint256,uint256,uint256,uint256)": EventFragment;
     "AuctionTimeChanged(uint256)": EventFragment;
     "BidMaked(address,uint256,uint256,uint256)": EventFragment;
@@ -285,8 +306,8 @@ export interface NFTMarketInterface extends utils.Interface {
 }
 
 export type AuctionFinishedEvent = TypedEvent<
-  [BigNumber, boolean],
-  { auctionId: BigNumber; result: boolean }
+  [string, BigNumber, boolean],
+  { bidderWiner: string; auctionId: BigNumber; result: boolean }
 >;
 
 export type AuctionFinishedEventFilter = TypedEventFilter<AuctionFinishedEvent>;
@@ -424,6 +445,8 @@ export interface NFTMarket extends BaseContract {
 
     PAUSER_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
+    auctionTime(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     buyItem(
       _itemId: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -506,6 +529,8 @@ export interface NFTMarket extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    nftContract(overrides?: CallOverrides): Promise<[string]>;
+
     pause(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -529,6 +554,8 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
+    token(overrides?: CallOverrides): Promise<[string]>;
+
     unpause(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
@@ -539,6 +566,8 @@ export interface NFTMarket extends BaseContract {
   MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
 
   PAUSER_ROLE(overrides?: CallOverrides): Promise<string>;
+
+  auctionTime(overrides?: CallOverrides): Promise<BigNumber>;
 
   buyItem(
     _itemId: BigNumberish,
@@ -622,6 +651,8 @@ export interface NFTMarket extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  nftContract(overrides?: CallOverrides): Promise<string>;
+
   pause(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -645,6 +676,8 @@ export interface NFTMarket extends BaseContract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
+  token(overrides?: CallOverrides): Promise<string>;
+
   unpause(
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
@@ -655,6 +688,8 @@ export interface NFTMarket extends BaseContract {
     MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
 
     PAUSER_ROLE(overrides?: CallOverrides): Promise<string>;
+
+    auctionTime(overrides?: CallOverrides): Promise<BigNumber>;
 
     buyItem(_itemId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
@@ -732,6 +767,8 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    nftContract(overrides?: CallOverrides): Promise<string>;
+
     pause(overrides?: CallOverrides): Promise<void>;
 
     paused(overrides?: CallOverrides): Promise<boolean>;
@@ -753,15 +790,19 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
+    token(overrides?: CallOverrides): Promise<string>;
+
     unpause(overrides?: CallOverrides): Promise<void>;
   };
 
   filters: {
-    "AuctionFinished(uint256,bool)"(
+    "AuctionFinished(address,uint256,bool)"(
+      bidderWiner?: string | null,
       auctionId?: null,
       result?: null
     ): AuctionFinishedEventFilter;
     AuctionFinished(
+      bidderWiner?: string | null,
       auctionId?: null,
       result?: null
     ): AuctionFinishedEventFilter;
@@ -885,6 +926,8 @@ export interface NFTMarket extends BaseContract {
 
     PAUSER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
+    auctionTime(overrides?: CallOverrides): Promise<BigNumber>;
+
     buyItem(
       _itemId: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -966,6 +1009,8 @@ export interface NFTMarket extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    nftContract(overrides?: CallOverrides): Promise<BigNumber>;
+
     pause(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -989,6 +1034,8 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
+    token(overrides?: CallOverrides): Promise<BigNumber>;
+
     unpause(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
@@ -1002,6 +1049,8 @@ export interface NFTMarket extends BaseContract {
     MINTER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     PAUSER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    auctionTime(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     buyItem(
       _itemId: BigNumberish,
@@ -1084,6 +1133,8 @@ export interface NFTMarket extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    nftContract(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     pause(
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
@@ -1106,6 +1157,8 @@ export interface NFTMarket extends BaseContract {
       interfaceId: BytesLike,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    token(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     unpause(
       overrides?: Overrides & { from?: string | Promise<string> }
