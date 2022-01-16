@@ -227,6 +227,7 @@ contract NFTMarket is AccessControl, Pausable{
     whenNotPaused
     itemOwner(_itemId)
     itemNotSale(_itemId)
+    returns(bool)
     {
         require(_price > 0,"Price must be bigger then zero");
         require(_amount <= idToMarketItem[_itemId].amountItems,"Price must be bigger then zero");
@@ -241,6 +242,36 @@ contract NFTMarket is AccessControl, Pausable{
             _price,
             true
         ); 
+        return true;
+    }
+    
+    /** @notice List item on marketplace.
+     * @dev Update itemsId, emit MarketItemCreated event.
+     * @param _itemId Id of listed item.
+     * @param _price Price in EIP20 tokens for item.
+    */
+    function listItem(
+        uint256 _itemId, 
+        uint256 _price
+    ) external  
+    whenNotPaused
+    itemOwner(_itemId)
+    itemNotSale(_itemId)
+    returns(bool)
+    {
+        require(_price > 0,"Price must be bigger then zero");
+
+        _listItem(_itemId);
+        idToMarketItem[_itemId].price = _price;
+
+        emit MarketItemCreated(
+            nftContract, 
+            msg.sender,  
+            _itemId,
+            _price,
+            true
+        ); 
+        return true;
     }
 
     /** @notice Buy item for price in ACDM tokens.
@@ -297,7 +328,8 @@ contract NFTMarket is AccessControl, Pausable{
             uint256 _startPrice
         ) external
         itemOwner(_idItem)
-        itemNotSale(_idItem){
+        itemNotSale(_idItem)
+        returns(bool){
         _listItem(_idItem);
     
         _auctionIds.increment();
@@ -324,6 +356,7 @@ contract NFTMarket is AccessControl, Pausable{
             _idItem,
             1
         );
+        return true;
        
     }
 
@@ -341,7 +374,8 @@ contract NFTMarket is AccessControl, Pausable{
             uint256 _startPrice
         ) external
         itemOwner(_idItem)
-        itemNotSale(_idItem){
+        itemNotSale(_idItem)
+        returns(bool){
             require(idToMarketItem[_idItem].amountItems >= _amount,"Insufficent funds");
             _listItem(_idItem, _amount);
         
@@ -369,7 +403,7 @@ contract NFTMarket is AccessControl, Pausable{
                 _idItem,
                 _amount
             );
-       
+        return true;
     }
 
     /** @notice Make bid in choisen auction by user.

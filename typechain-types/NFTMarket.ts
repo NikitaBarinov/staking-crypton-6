@@ -51,12 +51,14 @@ export type AuctionStruct = {
   minBidStep: BigNumberish;
   finishTime: BigNumberish;
   idItem: BigNumberish;
+  amount: BigNumberish;
 };
 
 export type AuctionStructOutput = [
   string,
   string,
   boolean,
+  BigNumber,
   BigNumber,
   BigNumber,
   BigNumber,
@@ -71,6 +73,7 @@ export type AuctionStructOutput = [
   minBidStep: BigNumber;
   finishTime: BigNumber;
   idItem: BigNumber;
+  amount: BigNumber;
 };
 
 export interface NFTMarketInterface extends utils.Interface {
@@ -94,7 +97,7 @@ export interface NFTMarketInterface extends utils.Interface {
     "getRoleAdmin(bytes32)": FunctionFragment;
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
-    "listItem(uint256,uint256,uint256)": FunctionFragment;
+    "listItem(uint256,uint256)": FunctionFragment;
     "listItemOnAuction(uint256,uint256,uint256)": FunctionFragment;
     "makeBid(uint256,uint256)": FunctionFragment;
     "nftContract()": FunctionFragment;
@@ -185,7 +188,7 @@ export interface NFTMarketInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "listItem",
-    values: [BigNumberish, BigNumberish, BigNumberish]
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "listItemOnAuction",
@@ -297,7 +300,7 @@ export interface NFTMarketInterface extends utils.Interface {
 
   events: {
     "AuctionFinished(address,uint256,bool)": EventFragment;
-    "AuctionStarted(address,uint256,uint256,uint256,uint256,uint256)": EventFragment;
+    "AuctionStarted(address,uint256,uint256,uint256,uint256,uint256,uint256)": EventFragment;
     "AuctionTimeChanged(uint256)": EventFragment;
     "BidMaked(address,uint256,uint256,uint256)": EventFragment;
     "ItemBought(address,uint256,uint256)": EventFragment;
@@ -334,7 +337,7 @@ export type AuctionFinishedEvent = TypedEvent<
 export type AuctionFinishedEventFilter = TypedEventFilter<AuctionFinishedEvent>;
 
 export type AuctionStartedEvent = TypedEvent<
-  [string, BigNumber, BigNumber, BigNumber, BigNumber, BigNumber],
+  [string, BigNumber, BigNumber, BigNumber, BigNumber, BigNumber, BigNumber],
   {
     owner: string;
     startPrice: BigNumber;
@@ -342,6 +345,7 @@ export type AuctionStartedEvent = TypedEvent<
     finishTime: BigNumber;
     idAuction: BigNumber;
     idItem: BigNumber;
+    amount: BigNumber;
   }
 >;
 
@@ -541,15 +545,29 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    "listItem(uint256,uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    listItemOnAuction(
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
+      _minBidStep: BigNumberish,
+      _startPrice: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
+      _idItem: BigNumberish,
+      _amount: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -674,15 +692,29 @@ export interface NFTMarket extends BaseContract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
-  listItem(
+  "listItem(uint256,uint256)"(
+    _itemId: BigNumberish,
+    _price: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  "listItem(uint256,uint256,uint256)"(
     _itemId: BigNumberish,
     _price: BigNumberish,
     _amount: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  listItemOnAuction(
+  "listItemOnAuction(uint256,uint256,uint256)"(
     _idItem: BigNumberish,
+    _minBidStep: BigNumberish,
+    _startPrice: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  "listItemOnAuction(uint256,uint256,uint256,uint256)"(
+    _idItem: BigNumberish,
+    _amount: BigNumberish,
     _minBidStep: BigNumberish,
     _startPrice: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -801,19 +833,33 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    "listItem(uint256,uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       _amount: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<boolean>;
 
-    listItemOnAuction(
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: CallOverrides
-    ): Promise<void>;
+    ): Promise<boolean>;
+
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
+      _idItem: BigNumberish,
+      _amount: BigNumberish,
+      _minBidStep: BigNumberish,
+      _startPrice: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
 
     makeBid(
       _auctionId: BigNumberish,
@@ -861,13 +907,14 @@ export interface NFTMarket extends BaseContract {
       result?: null
     ): AuctionFinishedEventFilter;
 
-    "AuctionStarted(address,uint256,uint256,uint256,uint256,uint256)"(
+    "AuctionStarted(address,uint256,uint256,uint256,uint256,uint256,uint256)"(
       owner?: string | null,
       startPrice?: null,
       minBidStep?: null,
       finishTime?: null,
       idAuction?: null,
-      idItem?: null
+      idItem?: null,
+      amount?: null
     ): AuctionStartedEventFilter;
     AuctionStarted(
       owner?: string | null,
@@ -875,7 +922,8 @@ export interface NFTMarket extends BaseContract {
       minBidStep?: null,
       finishTime?: null,
       idAuction?: null,
-      idItem?: null
+      idItem?: null,
+      amount?: null
     ): AuctionStartedEventFilter;
 
     "AuctionTimeChanged(uint256)"(
@@ -1059,15 +1107,29 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    "listItem(uint256,uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    listItemOnAuction(
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
+      _minBidStep: BigNumberish,
+      _startPrice: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
+      _idItem: BigNumberish,
+      _amount: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1194,15 +1256,29 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    "listItem(uint256,uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       _amount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    listItemOnAuction(
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
+      _minBidStep: BigNumberish,
+      _startPrice: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
+      _idItem: BigNumberish,
+      _amount: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }

@@ -17,6 +17,7 @@ describe('NFTMarket contract', () => {
         [addr1, owner, addr2] = await ethers.getSigners();
         Token = await ethers.getContractFactory("ACDM");
         MonkeyVis = await ethers.getContractFactory("MonkeyVision");
+        ERC1155Token = await ethers.getContractFactory("ACDM1155"); 
         Market = await ethers.getContractFactory("NFTMarket");
     });
     
@@ -27,7 +28,10 @@ describe('NFTMarket contract', () => {
         mv = await MonkeyVis.connect(owner).deploy();
         await mv.deployed();
 
-        market = await Market.connect(owner).deploy(mv.address, token.address);
+        erc1155Token = await ERC1155Token.connect(owner).deploy(testData.metadata.toString());
+        await erc1155Token.deployed();
+
+        market = await Market.connect(owner).deploy(mv.address, token.address, erc1155Token.address);
         await market.deployed();
 
         await mv.connect(owner).initMarket(market.address);
@@ -134,7 +138,7 @@ describe('NFTMarket contract', () => {
                 ramsesURI
             ))
             .to.emit(market, "ItemCreated")
-            .withArgs(owner.address, 1)
+            .withArgs(owner.address, 1, 1)
             .and.to.emit(mv, "TokenCreated")
             .withArgs(owner.address, 1, ramsesURI);
         });
