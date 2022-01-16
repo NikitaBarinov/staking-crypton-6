@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 
 import "./tokens/ACDM.sol";
 import "./tokens/ERC721.sol";
+import "./tokens/ERC1155.sol";
 
 contract NFTMarket is AccessControl, Pausable{
     using SafeERC20 for IERC20;
