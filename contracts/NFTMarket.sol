@@ -56,6 +56,7 @@ contract NFTMarket is AccessControl, Pausable{
         uint256 minBidStep;
         uint256 finishTime;
         uint256 idItem;
+        uint256 amount;
     }
     mapping(uint256 => uint256) amounts;
 
@@ -80,7 +81,8 @@ contract NFTMarket is AccessControl, Pausable{
         uint256 minBidStep,
         uint256 finishTime,
         uint256 idAuction,
-        uint256 idItem
+        uint256 idItem,
+        uint256 amount
     );
 
     //Emitted when created token for item
@@ -169,7 +171,7 @@ contract NFTMarket is AccessControl, Pausable{
 
         idToMarketItem[itemId] = MarketItem(
             itemId,
-            0,
+            1,
             0,
             nftContract,
             _to,
@@ -195,7 +197,6 @@ contract NFTMarket is AccessControl, Pausable{
     
             for(uint256 i = 0; i < _ids.length; i++){
                 _itemIds.increment();
-            
                 idToMarketItem[_itemIds.current()] = MarketItem(
                 _ids[i],
                 _amounts[i],
@@ -204,14 +205,13 @@ contract NFTMarket is AccessControl, Pausable{
                 _to,
                 false
                 );
+
             emit ItemCreated(
             _to,
             _itemIds.current(),
             _amounts[i]
             );
         }   
-
-        
     }
 
     /** @notice List item on marketplace.
@@ -298,7 +298,6 @@ contract NFTMarket is AccessControl, Pausable{
         ) external
         itemOwner(_idItem)
         itemNotSale(_idItem){
-        //if item owner exist, item also exist ?
         _listItem(_idItem);
     
         _auctionIds.increment();
@@ -312,7 +311,8 @@ contract NFTMarket is AccessControl, Pausable{
             0,
             _minBidStep,
             (block.timestamp + auctionTime),
-            _idItem
+            _idItem,
+            1
         );
         
         emit AuctionStarted(
@@ -321,11 +321,56 @@ contract NFTMarket is AccessControl, Pausable{
             _minBidStep,
             (block.timestamp + auctionTime),
             auctionIds,
-            _idItem
+            _idItem,
+            1
         );
        
     }
 
+
+        /** @notice List iem on aution by item owner.
+     * @dev Create auction, emit AuctionStarted event.
+     * @param _idItem Id of ERC721 token that owner want to list on auction.
+     * @param _minBidStep The amount of minimum bid step in auction in ERC20 token.
+     * @param _startPrice The amount of price in ERC20 token, with which auction will start.
+    */
+    function listItemOnAuction(
+            uint256 _idItem,
+            uint256 _amount, 
+            uint256 _minBidStep, 
+            uint256 _startPrice
+        ) external
+        itemOwner(_idItem)
+        itemNotSale(_idItem){
+            require(idToMarketItem[_idItem].amountItems >= _amount,"Insufficent funds");
+            _listItem(_idItem, _amount);
+        
+            _auctionIds.increment();
+            uint256 auctionIds = _auctionIds.current();
+            
+            auctions[auctionIds] = Auction(
+                msg.sender,
+                address(0),
+                true,
+                _startPrice,
+                0,
+                _minBidStep,
+                (block.timestamp + auctionTime),
+                _idItem,
+                _amount
+            );
+            
+            emit AuctionStarted(
+                msg.sender,
+                _startPrice,
+                _minBidStep,
+                (block.timestamp + auctionTime),
+                auctionIds,
+                _idItem,
+                _amount
+            );
+       
+    }
 
     /** @notice Make bid in choisen auction by user.
      * @dev Make bid in choisen aucton, emit BidMaked event.
@@ -447,6 +492,7 @@ contract NFTMarket is AccessControl, Pausable{
     */
     function _listItem(uint256 _itemId, uint256 _amount) private{
         if(idToMarketItem[_itemId].amountItems < _amount){
+            idToMarketItem[_itemId].amountItems = _amount;
             _itemIds.increment();
             uint256 itemId = _itemIds.current();
             idToMarketItem[itemId] = MarketItem(
