@@ -10,7 +10,7 @@ describe('ERC721 contract', () => {
     const ramsesURI = (testData.metadata).toString();
     before(async () => {
         [addr1, owner, addr2] = await ethers.getSigners();
-        Token = await ethers.getContractFactory("MonkeyVision");
+        Token = await ethers.getContractFactory("ACDM721");
     });
     
     beforeEach(async () => {

@@ -16,8 +16,6 @@ describe('NFTMarket contract', () => {
     before(async () => {
         [addr1, owner, addr2] = await ethers.getSigners();
         Token = await ethers.getContractFactory("ACDM");
-        MonkeyVis = await ethers.getContractFactory("MonkeyVision");
-        ERC1155Token = await ethers.getContractFactory("ACDM1155"); 
         Market = await ethers.getContractFactory("NFTMarket");
     });
     
@@ -25,20 +23,18 @@ describe('NFTMarket contract', () => {
         token = await Token.connect(owner).deploy();
         await token.deployed();
 
-        mv = await MonkeyVis.connect(owner).deploy();
-        await mv.deployed();
-
-        erc1155Token = await ERC1155Token.connect(owner).deploy(testData.metadata.toString());
-        await erc1155Token.deployed();
-
-        market = await Market.connect(owner).deploy(mv.address, token.address, erc1155Token.address);
+        market = await Market.connect(owner).deploy(token.address);
         await market.deployed();
-
-        await mv.connect(owner).initMarket(market.address);
+       
+        mvAddress = await market.nftContract();
+        mv = await ethers.getContractAt("ACDM721", mvAddress);
+        
+        erc1155Address = await market.erc1155Contract();
+        erc1155Contract = await ethers.getContractAt("ACDM1155", erc1155Address);
         
         await token.grantRole(minterRole, owner.address);
         await token.grantRole(burnerRole, owner.address);
-
+      
         await token.connect(owner).mint(owner.address, 1000);
         await token.connect(owner).mint(addr1.address, 1000);
         await token.connect(owner).mint(market.address, 1000);
@@ -83,12 +79,6 @@ describe('NFTMarket contract', () => {
             expect(
                 await token.balanceOf(addr1.address))
             .to.equal(1000);      
-        });
-
-        it("Non owner should not be able to init Marketplace", async () => {
-            await expect(
-                mv.connect(addr1).initMarket(market.address)
-            ).to.be.revertedWith("Ownable: caller is not the owner");
         });
     });
 
@@ -331,11 +321,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
+                    5
+            ); 
 
 
             token.connect(addr1).approve(market.address, 900);
@@ -467,12 +457,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
-
+                    5
+            ); 
             auctionInfo = await market.getAuction(1);
             itemInfo = await market.getItem(1);
                 
@@ -501,10 +490,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await expect(market.connect(addr1)
-            .listItemOnAuction(
+            ['listItemOnAuction(uint256,uint256,uint256)'](
                 1,
                 1,
-                5 
+                5
             ))
             .to.be.revertedWith('Not token owner');
         });
@@ -519,11 +508,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-            .listItemOnAuction(
-                1,
-                1,
-                5 
-            );
+                ['listItemOnAuction(uint256,uint256,uint256)'](
+                    1,
+                    1,
+                    5
+            ); 
             await expect(market['listItem(uint256,uint256)'](
                 1,
                 100
@@ -545,10 +534,10 @@ describe('NFTMarket contract', () => {
             );
 
             await expect(market.connect(owner)
-            .listItemOnAuction(
+            ['listItemOnAuction(uint256,uint256,uint256)'](
                 1,
                 1,
-                5 
+                5
             ))
             .to.be.revertedWith('Item sale');
         });
@@ -562,19 +551,18 @@ describe('NFTMarket contract', () => {
                 );
             
             await expect(market.connect(owner)
-            .listItemOnAuction(
+            ['listItemOnAuction(uint256,uint256,uint256)'](
                 5,
                 1,
-                5 
+                5
             ))
             .to.be.revertedWith('Not token owner');
             await expect(
-                market
-                .connect(owner)
-                .listItemOnAuction(
+                market.connect(owner)
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
                 ))
             .to.emit(market, "AuctionStarted")
             .withArgs(owner.address, 5, 1, Number((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp + (259201)), 1,1,1)
@@ -591,11 +579,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
+                    5
+            ); 
 
 
             token.connect(addr1).approve(market.address, 900);
@@ -621,11 +609,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
+                    5
+            ); 
 
             await expect(market.connect(owner).makeBid(1,6))
                 .to.be.revertedWith('Can not make bid');
@@ -640,12 +628,12 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
-            
+                    5
+            ); 
+
             token.connect(addr1).approve(market.address, 900);
                 
             await expect(market.connect(addr1).makeBid(1,5))
@@ -661,11 +649,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
+                    5
+            ); 
                 
             await expect(market.connect(addr2).makeBid(1,6))
                 .to.be.revertedWith('Insufficent funds');
@@ -680,11 +668,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
+                    5
+            ); 
 
             token.connect(addr1).approve(market.address, 900);
          
@@ -713,11 +701,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
+                    5
+            ); 
 
             token.connect(addr1).approve(market.address, 900);
          
@@ -740,11 +728,11 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
-            );
+                    5
+            ); 
 
             token.connect(addr1).approve(market.address, 900);
 
@@ -761,10 +749,10 @@ describe('NFTMarket contract', () => {
                 );
 
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
             
             token.connect(addr1).approve(market.address, 900);
@@ -783,10 +771,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -830,10 +818,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -867,10 +855,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -895,10 +883,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -923,10 +911,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -953,10 +941,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -976,6 +964,41 @@ describe('NFTMarket contract', () => {
             .withArgs(addr1.address, 1, true);
         });
 
+        it('finishAuction: should emit "AuctionFinished" ERC1155', async () => {
+            await market.connect(owner)
+                .createItemBatch(
+                    owner.address,
+                    [1, 2],
+                    [5, 3],
+                    []
+                );
+            await erc1155Contract.connect(owner).setApprovalForAll(market.address, true);
+
+            await market.connect(owner)
+                ['listItemOnAuction(uint256,uint256,uint256,uint256)'](
+                    1,
+                    3,
+                    1,
+                    1 
+            ); 
+             
+            token.connect(addr1).approve(market.address, 900);
+
+            await market.connect(addr1).makeBid(1,6);
+            await market.connect(addr1).makeBid(1,15);
+            await market.connect(addr1).makeBid(1,20);
+
+            await network.provider.send("evm_increaseTime", [259202])
+            await network.provider.send("evm_mine");
+     
+            await expect(market.connect(owner)
+            .finishAuction(
+                1,
+            ))
+            .to.emit(market, "AuctionFinished")
+            .withArgs(addr1.address, 1, true);
+        });
+
         it('cancelAuction: should cancel auction', async () => {
             await mv.connect(owner).setApprovalForAll(market.address, true);
             await market
@@ -983,21 +1006,21 @@ describe('NFTMarket contract', () => {
                     owner.address,
                     ramsesURI
                 );
-            
+
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
-         
+        
             await market.connect(addr1).makeBid(1,6);
 
             await network.provider.send("evm_increaseTime", [259202])
             await network.provider.send("evm_mine");
-
+        
             await market.connect(owner)
                 .cancelAuction(
                     1,
@@ -1030,10 +1053,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -1061,10 +1084,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -1087,10 +1110,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -1113,10 +1136,10 @@ describe('NFTMarket contract', () => {
                 );
             
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     1,
                     1,
-                    5 
+                    5
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -1209,16 +1232,16 @@ describe('NFTMarket contract', () => {
 
         it('fetchAuctionItems: should get all auction items', async () => {
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     4,
                     1,
-                    5 
+                    5
             );
             await market.connect(owner)
-                .listItemOnAuction(
+                ['listItemOnAuction(uint256,uint256,uint256)'](
                     5,
                     1,
-                    5 
+                    5
             );
 
             const marketItems = await market.fetchAuctionItems();
@@ -1243,10 +1266,10 @@ describe('NFTMarket contract', () => {
 
         it('getAuction: should get auction information', async () => {
             await market.connect(owner)
-            .listItemOnAuction(
-                5,
-                1,
-                5 
+                ['listItemOnAuction(uint256,uint256,uint256)'](
+                    5,
+                    1,
+                    5
             );
             auctionInfo = await market.getAuction(1);
 

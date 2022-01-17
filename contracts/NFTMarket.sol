@@ -7,14 +7,15 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 import "./tokens/ACDM.sol";
 import "./tokens/ERC721.sol";
 import "./tokens/ERC1155.sol";
 
-contract NFTMarket is AccessControl, Pausable{
+contract NFTMarket is AccessControl, Pausable, ERC1155Holder{
     using SafeERC20 for IERC20;
-    using Counters for Counters.Counter;
+    using Counters for Counters.Counter;    
     //Counter for items id 
     Counters.Counter private _itemIds;
     //Counter for amount of sold items
@@ -27,12 +28,13 @@ contract NFTMarket is AccessControl, Pausable{
     uint256 public auctionTime = 3 * 24 * 3600; 
     address public nftContract;
     address public erc1155Contract;
-    ACDM public token;
+    address public token;
 
-    constructor(address _nftContract, address _voteToken, address _erc1155Contact) {
-        token = ACDM(_voteToken);
-        nftContract = _nftContract;
-        erc1155Contract = _erc1155Contact;
+    constructor( address _voteToken) {
+        token = _voteToken;
+        nftContract = address(new ACDM721());
+        erc1155Contract = address(new ACDM1155());
+
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(MINTER_ROLE, msg.sender);
@@ -167,7 +169,7 @@ contract NFTMarket is AccessControl, Pausable{
         _itemIds.increment();
         uint256 itemId = _itemIds.current();
         
-        MonkeyVision(nftContract).createToken(_to, tokenURI);
+        ACDM721(nftContract).createToken(_to, tokenURI);
 
         idToMarketItem[itemId] = MarketItem(
             itemId,
@@ -223,14 +225,14 @@ contract NFTMarket is AccessControl, Pausable{
         uint256 _itemId, 
         uint256 _price,
         uint256 _amount
-    ) private 
+    ) external 
     whenNotPaused
     itemOwner(_itemId)
     itemNotSale(_itemId)
     returns(bool)
     {
         require(_price > 0,"Price must be bigger then zero");
-        require(_amount <= idToMarketItem[_itemId].amountItems,"Price must be bigger then zero");
+        require(_amount <= idToMarketItem[_itemId].amountItems,"Isufficent items");
 
         _listItem(_itemId, _amount);
         idToMarketItem[_itemId].price = _price;
@@ -244,12 +246,6 @@ contract NFTMarket is AccessControl, Pausable{
         ); 
         return true;
     }
-    // function listItem(uint256 _itemId, uint256 _price) external{
-    //         listItem1(_itemId,_price);
-    // }
-    // function listItem(uint256 _itemId, uint256 _price, uint256 _amount) external{
-    //         listItem2(_itemId,_price, _amount);
-    // }
     
     /** @notice List item on marketplace.
      * @dev Update itemsId, emit MarketItemCreated event.
@@ -336,8 +332,13 @@ contract NFTMarket is AccessControl, Pausable{
         itemOwner(_idItem)
         itemNotSale(_idItem)
         returns(bool){
+        
         _listItem(_idItem);
     
+        _createAuction(_startPrice, 1, _minBidStep,_idItem);
+        return true;
+    }
+    function _createAuction(uint256 _startPrice, uint256 _amount, uint256 _minBidStep, uint256 _itemId) private{
         _auctionIds.increment();
         uint256 auctionIds = _auctionIds.current();
         
@@ -349,23 +350,19 @@ contract NFTMarket is AccessControl, Pausable{
             0,
             _minBidStep,
             (block.timestamp + auctionTime),
-            _idItem,
-            1
+            _itemId,
+            _amount
         );
-        
-        emit AuctionStarted(
+         emit AuctionStarted(
             msg.sender,
             _startPrice,
             _minBidStep,
             (block.timestamp + auctionTime),
             auctionIds,
-            _idItem,
-            1
+            _itemId,
+            _amount
         );
-        return true;
-       
     }
-
 
     /** @notice List iem on aution by item owner.
      * @dev Create auction, emit AuctionStarted event.
@@ -373,7 +370,7 @@ contract NFTMarket is AccessControl, Pausable{
      * @param _minBidStep The amount of minimum bid step in auction in ERC20 token.
      * @param _startPrice The amount of price in ERC20 token, with which auction will start.
     */
-    function listItemOnAuctionERC1155(
+    function listItemOnAuction(
             uint256 _idItem,
             uint256 _amount, 
             uint256 _minBidStep, 
@@ -382,33 +379,11 @@ contract NFTMarket is AccessControl, Pausable{
         itemOwner(_idItem)
         itemNotSale(_idItem)
         returns(bool){
-            require(idToMarketItem[_idItem].amountItems >= _amount,"Insufficent funds");
+            require(_amount <= idToMarketItem[_idItem].amountItems,"Insufficent items");
+            
             _listItem(_idItem, _amount);
-        
-            _auctionIds.increment();
-            uint256 auctionIds = _auctionIds.current();
             
-            auctions[auctionIds] = Auction(
-                msg.sender,
-                address(0),
-                true,
-                _startPrice,
-                0,
-                _minBidStep,
-                (block.timestamp + auctionTime),
-                _idItem,
-                _amount
-            );
-            
-            emit AuctionStarted(
-                msg.sender,
-                _startPrice,
-                _minBidStep,
-                (block.timestamp + auctionTime),
-                auctionIds,
-                _idItem,
-                _amount
-            );
+            _createAuction(_startPrice, _amount, _minBidStep,_idItem);
         return true;
     }
 
@@ -511,9 +486,9 @@ contract NFTMarket is AccessControl, Pausable{
     function cancelItem_(uint256 _itemId, address _to) private{
         idToMarketItem[_itemId].sale = false;
         if(idToMarketItem[_itemId].nftContract == nftContract){
-            IERC721(nftContract).transferFrom(address(this), _to, _itemId);
+            IERC721(nftContract).transferFrom(address(this), _to, idToMarketItem[_itemId].itemId);
         }else if(idToMarketItem[_itemId].nftContract == erc1155Contract){
-            IERC1155(erc1155Contract).safeTransferFrom(address(this), _to, _itemId, idToMarketItem[_itemId].amountItems,"");
+            IERC1155(erc1155Contract).safeTransferFrom(address(this), _to, idToMarketItem[_itemId].itemId, idToMarketItem[_itemId].amountItems,"");
         }
     }
 
@@ -531,20 +506,21 @@ contract NFTMarket is AccessControl, Pausable{
      * @param _itemId Id of listing item.
     */
     function _listItem(uint256 _itemId, uint256 _amount) private{
-        if(idToMarketItem[_itemId].amountItems < _amount){
-            idToMarketItem[_itemId].amountItems = _amount;
+        if(idToMarketItem[_itemId].amountItems > _amount){
+           // idToMarketItem[_itemId].amountItems = _amount;
             _itemIds.increment();
             uint256 itemId = _itemIds.current();
             idToMarketItem[itemId] = MarketItem(
-                idToMarketItem[itemId].itemId,
-                idToMarketItem[itemId].amountItems - _amount,
+                idToMarketItem[_itemId].itemId,
+                idToMarketItem[_itemId].amountItems - _amount,
                 0,
                 erc1155Contract,
                 msg.sender,
                 false
             );
+            idToMarketItem[_itemId].amountItems = _amount;
         }
-        IERC1155(erc1155Contract).safeTransferFrom(msg.sender, address(this), _itemId, _amount,"");
+        IERC1155(erc1155Contract).safeTransferFrom(msg.sender, address(this), idToMarketItem[_itemId].itemId, _amount,"");
         idToMarketItem[_itemId].sale = true;
     }
 
@@ -620,6 +596,9 @@ contract NFTMarket is AccessControl, Pausable{
             }
         } 
         return items;
+    }
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC1155Receiver, AccessControl) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 }
 

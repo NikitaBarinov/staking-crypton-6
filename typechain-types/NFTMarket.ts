@@ -99,9 +99,10 @@ export interface NFTMarketInterface extends utils.Interface {
     "hasRole(bytes32,address)": FunctionFragment;
     "listItem(uint256,uint256)": FunctionFragment;
     "listItemOnAuction(uint256,uint256,uint256)": FunctionFragment;
-    "listItemOnAuctionERC1155(uint256,uint256,uint256,uint256)": FunctionFragment;
     "makeBid(uint256,uint256)": FunctionFragment;
     "nftContract()": FunctionFragment;
+    "onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)": FunctionFragment;
+    "onERC1155Received(address,address,uint256,uint256,bytes)": FunctionFragment;
     "pause()": FunctionFragment;
     "paused()": FunctionFragment;
     "renounceRole(bytes32,address)": FunctionFragment;
@@ -196,16 +197,20 @@ export interface NFTMarketInterface extends utils.Interface {
     values: [BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "listItemOnAuctionERC1155",
-    values: [BigNumberish, BigNumberish, BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "makeBid",
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "nftContract",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "onERC1155BatchReceived",
+    values: [string, string, BigNumberish[], BigNumberish[], BytesLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "onERC1155Received",
+    values: [string, string, BigNumberish, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(functionFragment: "pause", values?: undefined): string;
   encodeFunctionData(functionFragment: "paused", values?: undefined): string;
@@ -284,13 +289,17 @@ export interface NFTMarketInterface extends utils.Interface {
     functionFragment: "listItemOnAuction",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "listItemOnAuctionERC1155",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "makeBid", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "nftContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "onERC1155BatchReceived",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "onERC1155Received",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "pause", data: BytesLike): Result;
@@ -554,20 +563,27 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    listItemOnAuction(
+    "listItem(uint256,uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      _amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    listItemOnAuctionERC1155(
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _amount: BigNumberish,
       _minBidStep: BigNumberish,
@@ -582,6 +598,24 @@ export interface NFTMarket extends BaseContract {
     ): Promise<ContractTransaction>;
 
     nftContract(overrides?: CallOverrides): Promise<[string]>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish[],
+      arg3: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish,
+      arg3: BigNumberish,
+      arg4: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     pause(
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -694,20 +728,27 @@ export interface NFTMarket extends BaseContract {
     overrides?: CallOverrides
   ): Promise<boolean>;
 
-  listItem(
+  "listItem(uint256,uint256)"(
     _itemId: BigNumberish,
     _price: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  listItemOnAuction(
+  "listItem(uint256,uint256,uint256)"(
+    _itemId: BigNumberish,
+    _price: BigNumberish,
+    _amount: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  "listItemOnAuction(uint256,uint256,uint256)"(
     _idItem: BigNumberish,
     _minBidStep: BigNumberish,
     _startPrice: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  listItemOnAuctionERC1155(
+  "listItemOnAuction(uint256,uint256,uint256,uint256)"(
     _idItem: BigNumberish,
     _amount: BigNumberish,
     _minBidStep: BigNumberish,
@@ -722,6 +763,24 @@ export interface NFTMarket extends BaseContract {
   ): Promise<ContractTransaction>;
 
   nftContract(overrides?: CallOverrides): Promise<string>;
+
+  onERC1155BatchReceived(
+    arg0: string,
+    arg1: string,
+    arg2: BigNumberish[],
+    arg3: BigNumberish[],
+    arg4: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  onERC1155Received(
+    arg0: string,
+    arg1: string,
+    arg2: BigNumberish,
+    arg3: BigNumberish,
+    arg4: BytesLike,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   pause(
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -828,20 +887,27 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    listItemOnAuction(
+    "listItem(uint256,uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      _amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<boolean>;
+
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    listItemOnAuctionERC1155(
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _amount: BigNumberish,
       _minBidStep: BigNumberish,
@@ -856,6 +922,24 @@ export interface NFTMarket extends BaseContract {
     ): Promise<void>;
 
     nftContract(overrides?: CallOverrides): Promise<string>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish[],
+      arg3: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<string>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish,
+      arg3: BigNumberish,
+      arg4: BytesLike,
+      overrides?: CallOverrides
+    ): Promise<string>;
 
     pause(overrides?: CallOverrides): Promise<void>;
 
@@ -1095,20 +1179,27 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    listItemOnAuction(
+    "listItem(uint256,uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      _amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    listItemOnAuctionERC1155(
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _amount: BigNumberish,
       _minBidStep: BigNumberish,
@@ -1123,6 +1214,24 @@ export interface NFTMarket extends BaseContract {
     ): Promise<BigNumber>;
 
     nftContract(overrides?: CallOverrides): Promise<BigNumber>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish[],
+      arg3: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish,
+      arg3: BigNumberish,
+      arg4: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     pause(
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1237,20 +1346,27 @@ export interface NFTMarket extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    listItem(
+    "listItem(uint256,uint256)"(
       _itemId: BigNumberish,
       _price: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    listItemOnAuction(
+    "listItem(uint256,uint256,uint256)"(
+      _itemId: BigNumberish,
+      _price: BigNumberish,
+      _amount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    "listItemOnAuction(uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _minBidStep: BigNumberish,
       _startPrice: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    listItemOnAuctionERC1155(
+    "listItemOnAuction(uint256,uint256,uint256,uint256)"(
       _idItem: BigNumberish,
       _amount: BigNumberish,
       _minBidStep: BigNumberish,
@@ -1265,6 +1381,24 @@ export interface NFTMarket extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     nftContract(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    onERC1155BatchReceived(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish[],
+      arg3: BigNumberish[],
+      arg4: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    onERC1155Received(
+      arg0: string,
+      arg1: string,
+      arg2: BigNumberish,
+      arg3: BigNumberish,
+      arg4: BytesLike,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     pause(
       overrides?: Overrides & { from?: string | Promise<string> }
