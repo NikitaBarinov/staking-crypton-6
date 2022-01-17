@@ -223,7 +223,7 @@ contract NFTMarket is AccessControl, Pausable{
         uint256 _itemId, 
         uint256 _price,
         uint256 _amount
-    ) external 
+    ) private 
     whenNotPaused
     itemOwner(_itemId)
     itemNotSale(_itemId)
@@ -244,6 +244,12 @@ contract NFTMarket is AccessControl, Pausable{
         ); 
         return true;
     }
+    // function listItem(uint256 _itemId, uint256 _price) external{
+    //         listItem1(_itemId,_price);
+    // }
+    // function listItem(uint256 _itemId, uint256 _price, uint256 _amount) external{
+    //         listItem2(_itemId,_price, _amount);
+    // }
     
     /** @notice List item on marketplace.
      * @dev Update itemsId, emit MarketItemCreated event.
@@ -253,7 +259,7 @@ contract NFTMarket is AccessControl, Pausable{
     function listItem(
         uint256 _itemId, 
         uint256 _price
-    ) external  
+    ) external 
     whenNotPaused
     itemOwner(_itemId)
     itemNotSale(_itemId)
@@ -361,13 +367,13 @@ contract NFTMarket is AccessControl, Pausable{
     }
 
 
-        /** @notice List iem on aution by item owner.
+    /** @notice List iem on aution by item owner.
      * @dev Create auction, emit AuctionStarted event.
      * @param _idItem Id of ERC721 token that owner want to list on auction.
      * @param _minBidStep The amount of minimum bid step in auction in ERC20 token.
      * @param _startPrice The amount of price in ERC20 token, with which auction will start.
     */
-    function listItemOnAuction(
+    function listItemOnAuctionERC1155(
             uint256 _idItem,
             uint256 _amount, 
             uint256 _minBidStep, 

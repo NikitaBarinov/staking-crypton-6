@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const testData  = require("./fixtures/nft-metadata.json");
-
+const web3Abi = require('web3-eth-abi');
 describe('NFTMarket contract', () => {
     let Token, token, MonkeyVis, mv, Market, market, owner, addr1, addr2;
     const adminRole = ethers.constants.HashZero;
@@ -151,11 +151,10 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
-                );
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
+            );
 
             itemInfo = await market.getItem(1);
         
@@ -173,8 +172,8 @@ describe('NFTMarket contract', () => {
                     owner.address,
                     ramsesURI
             );
-            await expect(market.connect(addr1)
-                .listItem(
+            await expect(
+                market.connect(addr1)['listItem(uint256,uint256)'](
                     1,
                     100
                 ))
@@ -188,11 +187,10 @@ describe('NFTMarket contract', () => {
                     owner.address,
                     ramsesURI
             );
-            await expect(market
-                .listItem(
-                    100,
-                    100
-                ))
+            await expect(market['listItem(uint256,uint256)'](
+                100,
+                100
+            ))
             .to.be.revertedWith('Not token owner');
         });
 
@@ -203,11 +201,10 @@ describe('NFTMarket contract', () => {
                     owner.address,
                     ramsesURI
             );
-            await expect(market
-                .listItem(
-                    1,
-                    0
-                ))
+            await expect(market['listItem(uint256,uint256)'](
+                1,
+                0
+            ))
             .to.be.revertedWith('Price must be bigger then zero');
         });
 
@@ -218,11 +215,10 @@ describe('NFTMarket contract', () => {
                 owner.address,
                 ramsesURI
             );
-            await expect(market
-                .listItem(
-                    1,
-                    100
-                )
+            await expect(market['listItem(uint256,uint256)'](
+                1,
+                100
+            )
             )
             .to.emit(market, "MarketItemCreated")
             .withArgs(mv.address, owner.address, 1, 100, true)
@@ -238,10 +234,9 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
 
             token.connect(addr1).approve(market.address, 100);
@@ -268,10 +263,9 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
 
             await expect(market.connect(addr2)
@@ -289,10 +283,9 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
             token.connect(owner).approve(market.address, 900);
             await expect(market.connect(owner)
@@ -310,10 +303,9 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
 
             token.connect(addr1).approve(market.address, 900);
@@ -389,10 +381,9 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
 
             await market.connect(owner)
@@ -417,10 +408,9 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
 
             await expect(market.connect(addr1)
@@ -453,10 +443,9 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 );
             
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
 
             await expect(market.connect(owner)
@@ -535,11 +524,10 @@ describe('NFTMarket contract', () => {
                 1,
                 5 
             );
-            await expect(market
-                .listItem(
-                    1,
-                    100
-                ))
+            await expect(market['listItem(uint256,uint256)'](
+                1,
+                100
+            ))
             .to.be.revertedWith('Item sale');
         });
 
@@ -550,11 +538,12 @@ describe('NFTMarket contract', () => {
                     owner.address,
                     ramsesURI
                 );
-            await market
-                .listItem(
+    
+            await market['listItem(uint256,uint256)'](
                     1,
                     100
             );
+
             await expect(market.connect(owner)
             .listItemOnAuction(
                 1,
@@ -588,7 +577,7 @@ describe('NFTMarket contract', () => {
                     5 
                 ))
             .to.emit(market, "AuctionStarted")
-            .withArgs(owner.address, 5, 1, Number((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp + (259201)), 1, 1)
+            .withArgs(owner.address, 5, 1, Number((await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp + (259201)), 1,1,1)
             .and.to.emit(mv, "Transfer")
             .withArgs(owner.address, market.address, 1);
         });
@@ -1198,16 +1187,14 @@ describe('NFTMarket contract', () => {
                     ramsesURI
                 )
 
-            await market
-                .listItem(
-                    1,
-                    100
+            await market['listItem(uint256,uint256)'](
+                1,
+                100
             );
             await mv.connect(addr1).setApprovalForAll(market.address, true);
-            await market.connect(addr1)
-                .listItem(
-                    3,
-                    120
+            await market.connect(addr1)['listItem(uint256,uint256)'](
+                3,
+                120
             );
         });
 
