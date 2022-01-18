@@ -1,22 +1,18 @@
 const testData  = require("./nft/nft-metadata.json");
 
-const testData1  = require("./nft/third.json");
-const testData2  = require("./nft/pojiloy.json");
-task("createItem", "Create item")
+task("createToken", "Create token")
 .addParam("address", "Address receiver")
 .setAction(async (taskArgs) => {
 const [first, second] = await hre.ethers.getSigners();
- //const ramsesURI = (testData.metadata).toString();
- const ramsesURI = (testData2.metadata).toString();
+ const ramsesURI = (testData.metadata).toString();
  
-  const tradingFloor = await hre.ethers.getContractAt("NFTMarket", process.env.NFTMARKET_ADDRESS);
+  const tradingFloor = await hre.ethers.getContractAt("ACDM721", process.env.ERC721_ADDRESS);
 
   const result = await tradingFloor.connect(second)
-                    .createItem(
+                    .createToken(
                       taskArgs.address,
                       ramsesURI
                     );
     
   console.log('Transaction hash:',result.hash);
 });
-  

@@ -7,15 +7,15 @@ async function main() {
     const balance = await accounts[1].getBalance();
     console.log('Account balance ',balance.toString());
  
-    const TradingFloor = await ethers.getContractFactory("NFTMarket");
-    const tradingFloor = await TradingFloor.connect(accounts[1]).deploy(process.env.MONKEYVISION_ADDRESS, process.env.TOKEN_ADDRESS);
+    const TradingFloor = await ethers.getContractFactory("Bridge");
+    const tradingFloor = await TradingFloor.connect(accounts[1]).deploy(accounts[1].address, process.env.BRIDGE_ADDRESS);
     await tradingFloor.deployed();
     
-    console.log('NFTMarket address:', tradingFloor.address);
+    console.log('Bridge address:', tradingFloor.address);
     
     fs.appendFileSync(
-      `.env`,
-    `\r\# Deployed at \rNFTMARKET_ADDRESS=${tradingFloor.address}\r`
+      `.env-${network}`,
+    `\r\# Deployed at \rBRIDGE_ADDRESS=${tradingFloor.address}\r`
     );
 }   
 

@@ -7,15 +7,15 @@ async function main() {
     const balance = await accounts[1].getBalance();
     console.log('Account balance ',balance.toString());
 
-    const Token = await ethers.getContractFactory("MonkeyVision");
+    const Token = await ethers.getContractFactory("ACDM721");
     const token = await Token.connect(accounts[1]).deploy();
     await token.deployed();
 
     console.log('Token address:',token.address);
     
     fs.appendFileSync(
-      `.env`,
-    `\r\# Deployed at \rMONKEYVISION_ADDRESS=${token.address}\r`
+      `.env-${network}`,
+    `\r\# Deployed at \rERC721_ADDRESS=${token.address}\r`
     );
 }   
 

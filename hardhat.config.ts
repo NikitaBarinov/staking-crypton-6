@@ -9,12 +9,13 @@ import '@typechain/hardhat';
 import "@nomiclabs/hardhat-etherscan";
 //import "@openzeppelin/hardhat-upgrades";
 import 'solidity-coverage';
-import "./tasks/Token/index.ts";
+
 import "./tasks/index.ts";
 
 //define chainIds for networks 
 const chainIds = {
-    rinkeby: 4
+    rinkeby: 4,
+    BSC:97
 } 
 
 // Ensure everything is in place
@@ -61,7 +62,18 @@ export default {
       },
       defaultNetwork: 'hardhat',
       networks: {
-        rinkeby: createNetworkConfig('rinkeby')
+        rinkeby: createNetworkConfig('rinkeby'),
+        BSC:{
+          url:"https://data-seed-prebsc-1-s1.binance.org:8545/",
+          accounts: {
+            count: 2,
+            initialIndex: 0,
+            mnemonic,
+          },
+          chainId: 97,
+          gas: 2100000,
+          gasPrice: 80000000000
+        }
       },
       etherscan: {
         apiKey: process.env.ETHERSCAN_API_KEY
