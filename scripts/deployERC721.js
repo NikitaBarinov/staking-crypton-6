@@ -14,7 +14,7 @@ async function main() {
     console.log('Token address:',token.address);
     
     fs.appendFileSync(
-      `.env-${network}`,
+      `.env-${network.name}`,
     `\r\# Deployed at \rERC721_ADDRESS=${token.address}\r`
     );
 }   

@@ -13,8 +13,10 @@ async function main() {
     
     console.log('Bridge address:', tradingFloor.address);
     
+    console.log(network.name);
+
     fs.appendFileSync(
-      `.env-${network}`,
+      `.env-${network.name}`,
     `\r\# Deployed at \rBRIDGE_ADDRESS=${tradingFloor.address}\r`
     );
 }   

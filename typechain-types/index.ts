@@ -10,8 +10,8 @@ export type { IERC721Receiver } from "./IERC721Receiver";
 export type { ERC721Holder } from "./ERC721Holder";
 export type { ERC165 } from "./ERC165";
 export type { IERC165 } from "./IERC165";
-export type { Bridge } from "./Bridge";
 export type { ACDM721 } from "./ACDM721";
+export type { Bridge } from "./Bridge";
 
 export { Ownable__factory } from "./factories/Ownable__factory";
 export { ERC721__factory } from "./factories/ERC721__factory";
@@ -22,5 +22,5 @@ export { IERC721Receiver__factory } from "./factories/IERC721Receiver__factory";
 export { ERC721Holder__factory } from "./factories/ERC721Holder__factory";
 export { ERC165__factory } from "./factories/ERC165__factory";
 export { IERC165__factory } from "./factories/IERC165__factory";
-export { Bridge__factory } from "./factories/Bridge__factory";
 export { ACDM721__factory } from "./factories/ACDM721__factory";
+export { Bridge__factory } from "./factories/Bridge__factory";

@@ -15,7 +15,8 @@ import "./tasks/index.ts";
 //define chainIds for networks 
 const chainIds = {
     rinkeby: 4,
-    BSC:97
+    BSC:97,
+    kovan:42
 } 
 
 // Ensure everything is in place
@@ -63,6 +64,7 @@ export default {
       defaultNetwork: 'hardhat',
       networks: {
         rinkeby: createNetworkConfig('rinkeby'),
+        kovan: createNetworkConfig('kovan'),
         BSC:{
           url:"https://data-seed-prebsc-1-s1.binance.org:8545/",
           accounts: {

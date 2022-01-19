@@ -51,4 +51,13 @@ contract Bridge is ERC721Holder {
 
         emit SwapRedeemed(msg.sender, tokenId, chainFrom, block.chainid, nonce);
     }
+
+    function getSigner(uint256 tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s)external view   returns(address) {
+         bytes32 hash = keccak256(abi.encodePacked(
+            msg.sender, tokenId, chainFrom, block.chainid, nonce
+        ));
+
+        address signer = ECDSA.recover(ECDSA.toEthSignedMessageHash(hash), v, r, s);
+        return signer;
+    }
 }
