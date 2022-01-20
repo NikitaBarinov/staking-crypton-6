@@ -1,6 +1,7 @@
 const fs = require('fs');
 const dotenv = require('dotenv');
-task("setApprovalForAll", "Create token")
+task("safeTransferFrom", "Transfer token")
+.addParam("tokenId", "Id of transferable token")
 .setAction(async (taskArgs) => {
   const network = hre.network.name;
   const envConfig = dotenv.parse(fs.readFileSync(`.env-${network}`));
@@ -12,9 +13,10 @@ task("setApprovalForAll", "Create token")
   const tradingFloor = await hre.ethers.getContractAt("ACDM721", process.env.ERC721_ADDRESS);
 
   const result = await tradingFloor.connect(second)
-                    .setApprovalForAll(
+                    .transferFrom(
+                      second.address,
                       process.env.BRIDGE_ADDRESS,
-                      true
+                      taskArgs.tokenId
                     );
     
   console.log('Transaction hash:',result.hash);

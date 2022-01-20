@@ -91,12 +91,16 @@ describe('Bridge contract', () => {
             ];
 
             const hash = ethers.utils.solidityKeccak256(types, values);
-            const sign = await owner.signMessage(ethers.utils.arrayify(hash));
-            const { v, r, s } = ethers.utils.splitSignature(sign);
+            console.log("0 ",hash);
+            console.log("0 ",ethers.utils.arrayify(hash));
             
+            const sign = await owner.signMessage(ethers.utils.arrayify(hash));
+            console.log("0 ", sign);
+            const { v, r, s } = ethers.utils.splitSignature(sign);
+            console.log("0 ", v,"0 ", r,"0 ", s);
             await token1.connect(addr1).setApprovalForAll(bridge1.address, true);
             await bridge1.connect(addr1).swap(addr1TokenId, chainTo, nonce);    
-            
+            console.log(await bridge1.connect(addr1).redeem(addr1TokenId, 97, nonce, v, r, s));
             await expect(bridge1.connect(addr1).redeem(addr1TokenId, 97, nonce, v, r, s))
             .to.emit(token1,"Transfer")
             .withArgs(bridge1.address, addr1.address,  addr1TokenId).and

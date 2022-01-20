@@ -15,8 +15,9 @@ task("redeem", "redeem token")
   ];
 
   const values = [
-    second.address, taskArgs.tokenId, 4, 97, 1
+    second.address, taskArgs.tokenId, 42, 97, 1
   ];
+
   const hash = ethers.utils.solidityKeccak256(types, values);
   const sign = await second.signMessage(ethers.utils.arrayify(hash));
   const { v, r, s } = ethers.utils.splitSignature(sign);

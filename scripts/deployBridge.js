@@ -1,6 +1,12 @@
 const fs = require('fs');
+const dotenv = require('dotenv');
 
 async function main() {
+    const network = hre.network.name;
+    const envConfig = dotenv.parse(fs.readFileSync(`.env-${network}`));
+    for (const parameter in envConfig) {
+      process.env[parameter] = envConfig[parameter];
+    }
     const accounts = await ethers.getSigners();
     console.log('Deploying contract with account:',accounts[1].address);
     
@@ -8,15 +14,15 @@ async function main() {
     console.log('Account balance ',balance.toString());
  
     const TradingFloor = await ethers.getContractFactory("Bridge");
-    const tradingFloor = await TradingFloor.connect(accounts[1]).deploy(accounts[1].address, process.env.BRIDGE_ADDRESS);
+    const tradingFloor = await TradingFloor.connect(accounts[1]).deploy(accounts[1].address, process.env.ERC721_ADDRESS);
     await tradingFloor.deployed();
     
     console.log('Bridge address:', tradingFloor.address);
     
-    console.log(network.name);
+    console.log(network);
 
     fs.appendFileSync(
-      `.env-${network.name}`,
+      `.env-${network}`,
     `\r\# Deployed at \rBRIDGE_ADDRESS=${tradingFloor.address}\r`
     );
 }   

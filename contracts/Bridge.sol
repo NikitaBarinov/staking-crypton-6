@@ -28,14 +28,15 @@ contract Bridge is ERC721Holder {
             msg.sender, tokenId, block.chainid, chainTo, nonce
         ));
 
-        require(!locked[hash], 'Duplicate hash');
-        locked[hash] = true;
+        // require(!locked[hash], 'Duplicate hash');
+        // locked[hash] = true;
         
         IERC721(erc721_CONTRACT).transferFrom(msg.sender, address(this), tokenId);
         
         emit SwapInitialized(msg.sender, tokenId, block.chainid, chainTo, nonce);
     }
-    
+
+    //hash
     /** @notice Redeem token to address.
      * @dev  emit Swapredeemed event.
      * @param _tokenId Id of redeemed token.
@@ -54,8 +55,8 @@ contract Bridge is ERC721Holder {
         
         require(!isValidator, 'Invalid validator signature');
 
-        require(!redeemed[hash], 'Already redeemed');
-        redeemed[hash] = true;
+        // require(!redeemed[hash], 'Already redeemed');
+        // redeemed[hash] = true;
         
         IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, _tokenId);
 
