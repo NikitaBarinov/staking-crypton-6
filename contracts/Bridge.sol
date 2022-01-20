@@ -6,10 +6,16 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract Bridge is ERC721Holder {
+    //Emitted then token swap initialized 
     event SwapInitialized(address sender, uint256 tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
+    
+    //Emitted then token redeemed  
     event SwapRedeemed(address sender, uint256 tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
 
+    //Address of ERC721 token contract
     address public erc721_CONTRACT;
+
+    //Address of validator
     address public validator;
 
     constructor(address _validator, address _erc721_contract) {
@@ -20,27 +26,18 @@ contract Bridge is ERC721Holder {
         erc721_CONTRACT = _erc721_contract;
     }
 
-
     /** @notice Initialize token swap.
      * @dev  emit SwapInitialized event.
      * @param tokenId Id of redeemed token.
      * @param chainTo Id of chain to which token came.
      * @param nonce.
     */
-    function swap(uint256 tokenId, uint256 chainTo, uint256 nonce) public {
-        bytes32 hash = keccak256(abi.encodePacked(
-            msg.sender, tokenId, block.chainid, chainTo, nonce
-        ));
-
-        // require(!locked[hash], 'Duplicate hash');
-        // locked[hash] = true;
-        
+    function swap(uint256 tokenId, uint256 chainTo, uint256 nonce) external {        
         IERC721(erc721_CONTRACT).transferFrom(msg.sender, address(this), tokenId);
         
         emit SwapInitialized(msg.sender, tokenId, block.chainid, chainTo, nonce);
     }
 
-    //hash
     /** @notice Redeem token to address.
      * @dev  emit Swapredeemed event.
      * @param _tokenId Id of redeemed token.
@@ -55,24 +52,36 @@ contract Bridge is ERC721Holder {
             msg.sender, _tokenId, chainFrom, block.chainid, nonce
         ));
 
-        bool isValidator = checkValidator(hash, v, r, s);
-        
-        require(!isValidator, 'Invalid validator signature');
-
-        // require(!redeemed[hash], 'Already redeemed');
-        // redeemed[hash] = true;
+      //  bool isValidator = checkValidator(hash, v, r, s);
+        if (checkValidator(hash, v, r, s) == true ){
+            revert("dadsadaa");
+        }
+        require(checkValidator(hash, v, r, s) == true, "Invalid validator signature");
         
         IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, _tokenId);
 
         emit SwapRedeemed(msg.sender, _tokenId, chainFrom, block.chainid, nonce);
     }
 
+    /** @notice Check that validator sign message.
+     * @dev  recovered signer from hash.
+     * @param hash hash of message.
+     * @param v Part of signature.
+     * @param r Part of signature.
+     * @param s Part of signature.
+     * @return true if sender == validator
+    */
     function checkValidator(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public view  returns(bool){
         bytes32 a = getEthSignedMessageHash(hash);
         address signer = ecrecover(a, v, r, s);
-        return signer == validator;
+        return (signer == validator);
     }
-
+ 
+    
+    /** @notice Getter for signed message hash.
+     * @param _messageHash hash of message.
+     * @return signed message hash
+    */
     function getEthSignedMessageHash(bytes32 _messageHash)
         private
         view
@@ -86,5 +95,10 @@ contract Bridge is ERC721Holder {
             keccak256(
                 abi.encodePacked("\x19Ethereum Signed Message:\n32", _messageHash)
             );
+    }
+
+    /** Always returns `IERC721Receiver.onERC721Received.selector`. */
+    function onERC721Received(address, address, uint256, bytes memory) public virtual override returns (bytes4) {
+    return this.onERC721Received.selector;
     }
 }

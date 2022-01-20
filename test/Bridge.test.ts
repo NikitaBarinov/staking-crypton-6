@@ -75,10 +75,31 @@ describe('Bridge contract', () => {
             await token1.connect(addr1).setApprovalForAll(bridge1.address, true);
 
             await expect(bridge1.connect(addr1).swap(addr1TokenId, chainTo, nonce))
+            .to.emit(token1,"Transfer")
+            .withArgs(addr1.address, bridge1.address,  addr1TokenId).and
             .to.emit(bridge1, "SwapInitialized")
             .withArgs(addr1.address, addr1TokenId, 31337, chainTo, nonce);
+            
             let finalBalance = await token1.connect(addr1).balanceOf(addr1.address);
             expect(0).to.equal(finalBalance);
+        });
+
+        it('swap: should be reverted with "ERC721: transfer caller is not owner nor approved"', async () => {
+
+            await expect(bridge1.connect(owner).swap(addr1TokenId, chainTo, nonce))
+            .to.be.revertedWith('ERC721: transfer caller is not owner nor approved');
+            
+            let finalBalance = await token1.balanceOf(addr1.address);
+            expect(1).to.equal(finalBalance);
+        });
+
+        it('swap: should be reverted with "ERC721: operator query for nonexistent token"', async () => {
+
+            await expect(bridge1.connect(owner).swap(67, chainTo, nonce))
+            .to.be.revertedWith('ERC721: operator query for nonexistent token');
+            
+            let finalBalance = await token1.balanceOf(addr1.address);
+            expect(1).to.equal(finalBalance);
         });
 
         it('redeem: should redeem token', async () => { 
@@ -90,22 +111,49 @@ describe('Bridge contract', () => {
                 addr1.address, addr1TokenId, 31337, chainTo, nonce
             ];
 
-            const hash = ethers.utils.solidityKeccak256(types, values);
-            console.log("0 ",hash);
-            console.log("0 ",ethers.utils.arrayify(hash));
-            
+            const hash = await ethers.utils.solidityKeccak256(types, values);
+
             const sign = await owner.signMessage(ethers.utils.arrayify(hash));
-            console.log("0 ", sign);
             const { v, r, s } = ethers.utils.splitSignature(sign);
-            console.log("0 ", v,"0 ", r,"0 ", s);
+            // console.log("1 ",await bridge1.getValidator(),"~");
+            // console.log("2 ",await bridge1.connect(addr1).getSigner(hash,v,r,s),"~");
+            
+            
+            console.log(await bridge1.validator());
+            console.log(await bridge1.connect(addr1).checkValidator(hash,v,r,s));
+            console.log(await bridge1.connect(addr1).redeem(addr1TokenId, 97, nonce, v, r, s));
+            console.log(await hash);
             await token1.connect(addr1).setApprovalForAll(bridge1.address, true);
             await bridge1.connect(addr1).swap(addr1TokenId, chainTo, nonce);    
-            console.log(await bridge1.connect(addr1).redeem(addr1TokenId, 97, nonce, v, r, s));
+     
             await expect(bridge1.connect(addr1).redeem(addr1TokenId, 97, nonce, v, r, s))
             .to.emit(token1,"Transfer")
-            .withArgs(bridge1.address, addr1.address,  addr1TokenId).and
+            .withArgs(bridge1.address, addr1.address, addr1TokenId).and
             .to.emit(bridge1, "SwapRedeemed")
             .withArgs(addr1.address, addr1TokenId, 97, 31337, nonce)
+        });
+
+        it('redeem: should be reverted with "Invalid validator signature"', async () => { 
+            const types = [
+                'address', 'uint256', 'uint256', 'uint256', 'uint256',
+              ];
+        
+            const values = [
+                addr1.address, addr1TokenId, 31337, chainTo, nonce
+            ];
+
+            const hash = ethers.utils.solidityKeccak256(types, values);
+
+            const sign = await addr1.signMessage(ethers.utils.arrayify(hash));
+            const { v, r, s } = ethers.utils.splitSignature(sign);
+            
+            console.log(await bridge1.connect(addr1).checkValidator(hash,v,r,s));
+            
+            await token1.connect(addr1).setApprovalForAll(bridge1.address, true);
+            await bridge1.connect(addr1).swap(addr1TokenId, chainTo, nonce);    
+            
+            await expect(bridge1.connect(owner).redeem(addr1TokenId, 97, nonce, v, r, s))
+            .to.be.revertedWith('Invalid validator signature');
         });
     });
 });
