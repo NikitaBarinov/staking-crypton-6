@@ -1,6 +1,6 @@
 const fs = require('fs');
 const dotenv = require('dotenv');
-task("balanceOf", "To get balance of address")
+task("erc721balanceOf", "To get balance of address")
 .addParam("addressOf", "The account address")
 .setAction(async (taskArgs) => {
     const network = hre.network.name;

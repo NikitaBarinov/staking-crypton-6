@@ -30,34 +30,56 @@ contract Bridge is ERC721Holder {
 
         require(!locked[hash], 'Duplicate hash');
         locked[hash] = true;
-
+        
         IERC721(erc721_CONTRACT).transferFrom(msg.sender, address(this), tokenId);
-
+        
         emit SwapInitialized(msg.sender, tokenId, block.chainid, chainTo, nonce);
     }
-
-    function redeem(uint256 tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) public {
+    
+    /** @notice Redeem token to address.
+     * @dev  emit Swapredeemed event.
+     * @param _tokenId Id of redeemed token.
+     * @param chainFrom Id of chain from which token came.
+     * @param nonce.
+     * @param v Part of signature.
+     * @param r Part of signature.
+     * @param s Part of signature.
+    */
+    function redeem(uint256 _tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) public {
         bytes32 hash = keccak256(abi.encodePacked(
-            msg.sender, tokenId, chainFrom, block.chainid, nonce
+            msg.sender, _tokenId, chainFrom, block.chainid, nonce
         ));
 
-        address signer = ECDSA.recover(ECDSA.toEthSignedMessageHash(hash), v, r, s);
-        require(signer == validator, 'Invalid validator signature');
+        bool isValidator = checkValidator(hash, v, r, s);
+        
+        require(!isValidator, 'Invalid validator signature');
 
         require(!redeemed[hash], 'Already redeemed');
         redeemed[hash] = true;
+        
+        IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, _tokenId);
 
-        IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, tokenId);
-
-        emit SwapRedeemed(msg.sender, tokenId, chainFrom, block.chainid, nonce);
+        emit SwapRedeemed(msg.sender, _tokenId, chainFrom, block.chainid, nonce);
     }
 
-    function getSigner(uint256 tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s)external view   returns(address) {
-         bytes32 hash = keccak256(abi.encodePacked(
-            msg.sender, tokenId, chainFrom, block.chainid, nonce
-        ));
+    function checkValidator(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public view  returns(bool){
+        bytes32 a = getEthSignedMessageHash(hash);
+        address signer = ecrecover(a, v, r, s);
+        return signer == validator;
+    }
 
-        address signer = ECDSA.recover(ECDSA.toEthSignedMessageHash(hash), v, r, s);
-        return signer;
+    function getEthSignedMessageHash(bytes32 _messageHash)
+        private
+        view
+        returns (bytes32)
+    {
+        /*
+        Signature is produced by signing a keccak256 hash with the following format:
+        "\x19Ethereum Signed Message\n" + len(msg) + msg
+        */
+        return
+            keccak256(
+                abi.encodePacked("\x19Ethereum Signed Message:\n32", _messageHash)
+            );
     }
 }

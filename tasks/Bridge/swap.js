@@ -7,8 +7,8 @@ task("swap", "swap item")
 .addParam("nonce", "Nonce")
 .setAction(async (taskArgs) => {
 const [first, second] = await hre.ethers.getSigners();
-const network = hre.network.name;
-const envConfig = dotenv.parse(fs.readFileSync(`.env-${network}`));
+const network1 = hre.network.name;
+const envConfig = dotenv.parse(fs.readFileSync(`.env-${network1}`));
 for (const parameter in envConfig) {
   process.env[parameter] = envConfig[parameter];
 }

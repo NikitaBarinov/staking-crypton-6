@@ -10,7 +10,10 @@ import "@nomiclabs/hardhat-etherscan";
 //import "@openzeppelin/hardhat-upgrades";
 import 'solidity-coverage';
 
-import "./tasks/index.ts";
+import "./tasks/Bridge/index.ts";
+import "./tasks/ERC20/index.ts";
+import "./tasks/ERC721/index.ts";
+import "./tasks/Marketplace/index.ts";
 
 //define chainIds for networks 
 const chainIds = {

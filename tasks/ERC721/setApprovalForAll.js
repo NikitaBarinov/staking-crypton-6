@@ -1,4 +1,3 @@
-const testData  = require("./nft/nft-metadata.json");
 const fs = require('fs');
 const dotenv = require('dotenv');
 task("setApprovalForAll", "Create token")

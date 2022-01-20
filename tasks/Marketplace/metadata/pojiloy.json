@@ -1,0 +1,16 @@
+{
+  "attributes": [
+    {
+      "trait_type": "Breed",
+      "value": "Shlyapa"
+    },
+    {
+      "trait_type": "Eye color",
+      "value": "Green"
+    }
+  ],
+  "description": "The world's most adorable and sensitive pup.",
+  "metadata": "https://gateway.pinata.cloud/ipfs/QmW6HrJw9eeM7za2nhrHrBtrUUCJG6rGLTGaaBadN6rHp9",
+  "image": "https://gateway.pinata.cloud/ipfs/QmZqfR3Ugx7YS5qQ5oHnwrJ7vxr6bVfQqE3SmALst2pnWk",
+  "name": "OldMan"
+}
