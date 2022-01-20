@@ -12,9 +12,6 @@ contract Bridge is ERC721Holder {
     address public erc721_CONTRACT;
     address public validator;
 
-    mapping(bytes32 => bool) public locked;
-    mapping(bytes32 => bool) public redeemed;
-
     constructor(address _validator, address _erc721_contract) {
         require(_validator != address(0), 'Invalid validator address');
         require(_erc721_contract != address(0), 'Invalid NFT contract address');
@@ -23,6 +20,13 @@ contract Bridge is ERC721Holder {
         erc721_CONTRACT = _erc721_contract;
     }
 
+
+    /** @notice Initialize token swap.
+     * @dev  emit SwapInitialized event.
+     * @param tokenId Id of redeemed token.
+     * @param chainTo Id of chain to which token came.
+     * @param nonce.
+    */
     function swap(uint256 tokenId, uint256 chainTo, uint256 nonce) public {
         bytes32 hash = keccak256(abi.encodePacked(
             msg.sender, tokenId, block.chainid, chainTo, nonce
