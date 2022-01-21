@@ -31,16 +31,6 @@ describe('Bridge contract', () => {
 
     before(async () => {
         [addr1, owner, addr2] = await ethers.getSigners();
-        // token = await new ACDM721__factory(owner).deploy();
-        // await token.deployed(); 
-        
-        // bridge = await new Bridge__factory(owner).deploy(owner.address, token.address);
-        // await bridge.deployed();  
-
-        // // console.log(await token.connect(owner).createToken(owner.address,ramsesURI));
-        // // console.log(await token.connect(owner).createToken(addr1.address,ramsesURI));
-        // await token.connect(owner).createToken(addr1.address,ramsesURI);
-        // await token.connect(owner).createToken(addr1.address,ramsesURI);
     });
     
     beforeEach(async () => {
@@ -50,8 +40,6 @@ describe('Bridge contract', () => {
         bridge = await new Bridge__factory(owner).deploy(owner.address, token.address);
         await bridge.deployed();  
 
-        // console.log(await token.connect(owner).createToken(owner.address,ramsesURI));
-        // console.log(await token.connect(owner).createToken(addr1.address,ramsesURI));
         await token.connect(owner).createToken(owner.address,ramsesURI);
         await token.connect(owner).createToken(addr1.address,ramsesURI);
     });
