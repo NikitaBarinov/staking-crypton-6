@@ -62,7 +62,7 @@ contract Bridge is ERC721Holder {
 
         emit SwapRedeemed(msg.sender, _tokenId, chainFrom, block.chainid, nonce);
     }
-
+    // хеши не совпадают
     /** @notice Check that validator sign message.
      * @dev  recovered signer from hash.
      * @param hash hash of message.

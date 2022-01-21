@@ -1,22 +1,32 @@
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signers";
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const testData  = require("./fixtures/nft-metadata.json");
+import {
+    ACDM721__factory,
+    ACDM721,
+  } from "../typechain-types";
 
 describe('ERC721 contract', () => {
-    let Token, token, owner, addr1, addr2;
-
+    let 
+    Token: ACDM721__factory, 
+    token: ACDM721, 
+    owner: SignerWithAddress, 
+    addr1: SignerWithAddress, 
+    addr2: SignerWithAddress;
+    
     const zero_address = "0x0000000000000000000000000000000000000000";
     const minterRole =ethers.utils.solidityKeccak256(["string"],["MINTER_ROLE"]);
     const ramsesURI = (testData.metadata).toString();
+    
     before(async () => {
         [addr1, owner, addr2] = await ethers.getSigners();
-        Token = await ethers.getContractFactory("ACDM721");
+        token = await new ACDM721__factory(owner).deploy();
+        await token.deployed();    
     });
     
     beforeEach(async () => {
-        token = await Token.connect(owner).deploy();
-        await token.deployed();
-        
+           
     });
 
     describe('Deployment', () => {
@@ -82,7 +92,7 @@ describe('ERC721 contract', () => {
             await token.connect(owner).createToken(addr1.address, ramsesURI);
             await token.connect(owner).createToken(addr1.address, ramsesURI);
            
-            await expect(token.connect(addr1).setApprovalForAll(owner.address,1))
+            await expect(token.connect(addr1).setApprovalForAll(owner.address, true))
             .to.emit(token, "ApprovalForAll")
             .withArgs(addr1.address, owner.address, true);
 
@@ -100,7 +110,7 @@ describe('ERC721 contract', () => {
             await token.connect(owner).createToken(addr1.address, ramsesURI);
             await token.connect(owner).createToken(addr1.address, ramsesURI);
            
-            await token.connect(addr1).setApprovalForAll(owner.address,1);
+            await token.connect(addr1).setApprovalForAll(owner.address, true);
 
             await token.connect(owner).transferFrom(addr1.address, owner.address, 1);
 
@@ -119,7 +129,7 @@ describe('ERC721 contract', () => {
             await token.connect(owner).createToken(addr1.address, ramsesURI);
             await token.connect(owner).createToken(addr1.address, ramsesURI);
            
-            await expect( token.connect(owner).transferFrom(addr1.address, owner.address, 1))
+            await expect(token.connect(owner).transferFrom(addr1.address, owner.address, 1))
             .to
             .be
             .revertedWith('ERC721: transfer caller is not owner nor approved');
@@ -164,7 +174,7 @@ describe('ERC721 contract', () => {
             await token.connect(owner).createToken(addr1.address, ramsesURI);
             await token.connect(owner).createToken(addr1.address, ramsesURI);
            
-            await expect(token.connect(addr1).setApprovalForAll(owner.address,1))
+            await expect(token.connect(addr1).setApprovalForAll(owner.address, true))
             .to.emit(token, "ApprovalForAll")
             .withArgs(addr1.address, owner.address, true);
 

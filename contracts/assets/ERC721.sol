@@ -13,7 +13,6 @@ contract ACDM721 is ERC721URIStorage, Ownable {
 
     event TokenCreated(address owner, uint256 _itemId, string _tokenURI);
     constructor () ERC721("Metaverse Token", "MET") {
-
     }
 
     function createToken(address _to,string memory tokenURI) public onlyOwner returns(uint256){
