@@ -4,8 +4,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Bridge is ERC721Holder {
+contract Bridge is ERC721Holder, Ownable, Pausable {
     //Emitted then token swap initialized 
     event SwapInitialized(address sender, uint256 tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
     
@@ -47,22 +49,14 @@ contract Bridge is ERC721Holder {
      * @param r Part of signature.
      * @param s Part of signature.
     */
-    function redeem(uint256 _tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) public {
-        bytes32 hash = keccak256(abi.encodePacked(
-            msg.sender, _tokenId, chainFrom, block.chainid, nonce
-        ));
-
-      //  bool isValidator = checkValidator(hash, v, r, s);
-        if (checkValidator(hash, v, r, s) == true ){
-            revert("dadsadaa");
-        }
+    function redeem(bytes32 hash, uint256 _tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) public {
         require(checkValidator(hash, v, r, s) == true, "Invalid validator signature");
         
         IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, _tokenId);
 
         emit SwapRedeemed(msg.sender, _tokenId, chainFrom, block.chainid, nonce);
     }
-    // хеши не совпадают
+
     /** @notice Check that validator sign message.
      * @dev  recovered signer from hash.
      * @param hash hash of message.
@@ -71,9 +65,9 @@ contract Bridge is ERC721Holder {
      * @param s Part of signature.
      * @return true if sender == validator
     */
-    function checkValidator(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public view  returns(bool){
-        bytes32 a = getEthSignedMessageHash(hash);
-        address signer = ecrecover(a, v, r, s);
+    function checkValidator(bytes32 hash, uint8 v, bytes32 r, bytes32 s) private view  returns(bool){
+      //  bytes32 a = getEthSignedMessageHash(hash);
+        address signer = ecrecover(getEthSignedMessageHash(hash), v, r, s);
         return (signer == validator);
     }
  
@@ -100,5 +94,21 @@ contract Bridge is ERC721Holder {
     /** Always returns `IERC721Receiver.onERC721Received.selector`. */
     function onERC721Received(address, address, uint256, bytes memory) public virtual override returns (bytes4) {
     return this.onERC721Received.selector;
+    }
+
+    /** @notice Unpausing functions of contract.
+    * @dev Available only to admin
+    * Allows calls to functions with `whenNotPaused` modifier.
+    */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /** @notice Pausing some functions of contract.
+    * @dev Available only to owner.
+    * Prevents calls to functions with `whenNotPaused` modifier.
+    */
+    function pause() external onlyOwner {
+        _pause();
     }
 }

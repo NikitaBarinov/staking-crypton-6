@@ -20,13 +20,12 @@ describe('ERC721 contract', () => {
     const ramsesURI = (testData.metadata).toString();
     
     before(async () => {
-        [addr1, owner, addr2] = await ethers.getSigners();
-        token = await new ACDM721__factory(owner).deploy();
-        await token.deployed();    
+        [addr1, owner, addr2] = await ethers.getSigners();   
     });
     
     beforeEach(async () => {
-           
+        token = await new ACDM721__factory(owner).deploy();
+        await token.deployed(); 
     });
 
     describe('Deployment', () => {
