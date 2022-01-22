@@ -26,6 +26,7 @@ task("redeem", "redeem token")
 
     const result = await tradingFloor.connect(second)
                       .redeem(
+                        hash,
                         taskArgs.tokenId,
                         4,
                         1,
