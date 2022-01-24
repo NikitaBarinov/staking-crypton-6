@@ -9,17 +9,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Bridge is ERC721Holder, Ownable, Pausable {
     //Emitted then token swap initialized 
-    event SwapInitialized(address sender, uint256 tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
+    event SwapInitialized(address indexed sender, uint256 indexed tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
     
     //Emitted then token redeemed  
-    event SwapRedeemed(address sender, uint256 tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
+    event SwapRedeemed(address indexed sender, uint256 indexed tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
 
     //Address of ERC721 token contract
     address public erc721_CONTRACT;
 
     //Address of validator
     address public validator;
-
+    
     constructor(address _validator, address _erc721_contract) {
         require(_validator != address(0), 'Invalid validator address');
         require(_erc721_contract != address(0), 'Invalid NFT contract address');
@@ -34,7 +34,7 @@ contract Bridge is ERC721Holder, Ownable, Pausable {
      * @param chainTo Id of chain to which token came.
      * @param nonce.
     */
-    function swap(uint256 tokenId, uint256 chainTo, uint256 nonce) external {        
+    function swap(uint256 tokenId, uint256 chainTo, uint256 nonce) external whenNotPaused{        
         IERC721(erc721_CONTRACT).transferFrom(msg.sender, address(this), tokenId);
         
         emit SwapInitialized(msg.sender, tokenId, block.chainid, chainTo, nonce);
@@ -49,7 +49,7 @@ contract Bridge is ERC721Holder, Ownable, Pausable {
      * @param r Part of signature.
      * @param s Part of signature.
     */
-    function redeem(bytes32 hash, uint256 _tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) public {
+    function redeem(bytes32 hash, uint256 _tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) external whenNotPaused{
         require(checkValidator(hash, v, r, s) == true, "Invalid validator signature");
         
         IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, _tokenId);
@@ -66,11 +66,9 @@ contract Bridge is ERC721Holder, Ownable, Pausable {
      * @return true if sender == validator
     */
     function checkValidator(bytes32 hash, uint8 v, bytes32 r, bytes32 s) private view  returns(bool){
-      //  bytes32 a = getEthSignedMessageHash(hash);
         address signer = ecrecover(getEthSignedMessageHash(hash), v, r, s);
         return (signer == validator);
     }
- 
     
     /** @notice Getter for signed message hash.
      * @param _messageHash hash of message.

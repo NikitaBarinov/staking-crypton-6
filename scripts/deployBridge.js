@@ -18,7 +18,6 @@ async function main() {
     await tradingFloor.deployed();
     
     console.log('Bridge address:', tradingFloor.address);
-    
     console.log(network);
 
     fs.appendFileSync(

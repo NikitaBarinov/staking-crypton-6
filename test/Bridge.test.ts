@@ -64,6 +64,17 @@ describe('Bridge contract', () => {
     });
 
     describe('Transactions', () => {
+        it('Pausable: should pause and unpause contract', async () => {
+            await bridge.pause();
+            await token.connect(owner).setApprovalForAll(bridge.address, true);
+            await expect(
+                bridge.connect(addr1).swap(
+                    addr1TokenId, 
+                    chainTo, 
+                    nonce
+                )).to.be.revertedWith('Pausable: paused');
+        });
+
         it('swap: should swap tokens', async () => {
             await token.connect(addr1).setApprovalForAll(bridge.address, true);
 

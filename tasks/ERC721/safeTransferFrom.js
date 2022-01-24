@@ -1,5 +1,6 @@
 const fs = require('fs');
 const dotenv = require('dotenv');
+
 task("safeTransferFrom", "Transfer token")
 .addParam("tokenId", "Id of transferable token")
 .setAction(async (taskArgs) => {
