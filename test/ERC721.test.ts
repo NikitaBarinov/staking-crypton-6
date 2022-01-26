@@ -15,6 +15,7 @@ describe('ERC721 contract', () => {
     addr1: SignerWithAddress, 
     addr2: SignerWithAddress;
     
+    const adminRole = ethers.constants.HashZero;
     const zero_address = "0x0000000000000000000000000000000000000000";
     const minterRole =ethers.utils.solidityKeccak256(["string"],["MINTER_ROLE"]);
     const ramsesURI = (testData.metadata).toString();
@@ -38,8 +39,8 @@ describe('ERC721 contract', () => {
         }); 
 
         it('Should set admin role for owner', async () => {
-            expect(await token.owner()).to.equal(owner.address);
-        });   
+            expect(await token.hasRole(minterRole, owner.address)).to.equal(true);
+        }); 
     });
 
     describe('Transactions', () => {
@@ -50,13 +51,6 @@ describe('ERC721 contract', () => {
             const addr1Balance = await token.balanceOf(addr1.address);
 
             expect(addr1Balance).to.equal("1");
-        });
-
-        it('Mint: should revert with "Ownable: caller is not the owner"', async () => {
-            await expect(token.connect(addr1).createToken(addr1.address, ramsesURI))
-            .to
-            .be
-            .revertedWith('Ownable: caller is not the owner');
         });
 
         it('Approve: should approve token from addr1 to owner and emit "Approval" event', async () => {

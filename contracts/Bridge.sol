@@ -7,9 +7,18 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+import "./assets/ERC721.sol";
+
 contract Bridge is ERC721Holder, Ownable, Pausable {
     //Emitted then token swap initialized 
-    event SwapInitialized(address indexed sender, uint256 indexed tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
+    event SwapInitialized(
+        address indexed sender, 
+        uint256 indexed tokenId, 
+        uint256 chainFrom, 
+        uint256 chainTo, 
+        uint256 nonce, 
+        string uri
+    );
     
     //Emitted then token redeemed  
     event SwapRedeemed(address indexed sender, uint256 indexed tokenId, uint256 chainFrom, uint256 chainTo, uint256 nonce);
@@ -30,15 +39,22 @@ contract Bridge is ERC721Holder, Ownable, Pausable {
 
     /** @notice Initialize token swap.
      * @dev  emit SwapInitialized event.
-     * @param tokenId Id of redeemed token.
+     * @param _tokenId Id of redeemed token.
      * @param chainTo Id of chain to which token came.
      * @param nonce.
     */
-    function swap(uint256 tokenId, uint256 chainTo, uint256 nonce) external whenNotPaused{        
-        IERC721(erc721_CONTRACT).transferFrom(msg.sender, address(this), tokenId);
-        
-        emit SwapInitialized(msg.sender, tokenId, block.chainid, chainTo, nonce);
+    function swap(uint256 _tokenId, uint256 chainTo, uint256 nonce) external whenNotPaused{        
+        IERC721(erc721_CONTRACT).transferFrom(msg.sender, address(this), _tokenId);
+
+        emit SwapInitialized(
+            msg.sender, 
+            _tokenId, 
+            block.chainid, 
+            chainTo, 
+            nonce, 
+            ACDM721(erc721_CONTRACT).tokenURI(_tokenId));
     }
+    
 
     /** @notice Redeem token to address.
      * @dev  emit Swapredeemed event.
@@ -49,16 +65,20 @@ contract Bridge is ERC721Holder, Ownable, Pausable {
      * @param r Part of signature.
      * @param s Part of signature.
     */
-    function redeem(bytes32 hash, uint256 _tokenId, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) external whenNotPaused{
+    function redeem(bytes32 hash, uint256 _tokenId, string memory _uri, uint256 chainFrom, uint256 nonce, uint8 v, bytes32 r, bytes32 s) external whenNotPaused{
         require(checkValidator(hash, v, r, s) == true, "Invalid validator signature");
         
-        IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, _tokenId);
-
+        if(ACDM721(erc721_CONTRACT).tokenExist(_tokenId)){
+            IERC721(erc721_CONTRACT).safeTransferFrom(address(this), msg.sender, _tokenId);
+        } else{
+            ACDM721(erc721_CONTRACT).createSweepedToken(msg.sender, _tokenId, _uri);
+        }
+    
         emit SwapRedeemed(msg.sender, _tokenId, chainFrom, block.chainid, nonce);
     }
 
     /** @notice Check that validator sign message.
-     * @dev  recovered signer from hash.
+     * @dev  recover signer from hash.
      * @param hash hash of message.
      * @param v Part of signature.
      * @param r Part of signature.

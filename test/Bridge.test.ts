@@ -21,7 +21,9 @@ describe('Bridge contract', () => {
         nonce: number,
         chainTo: number,
         ramsesURI: string;
-       
+    
+    const minterRole =ethers.utils.solidityKeccak256(["string"],["MINTER_ROLE"]);
+    const adminRole = ethers.constants.HashZero;
     const zero_address = "0x0000000000000000000000000000000000000000";
     ramsesURI = (testData.metadata).toString();
     ownerTokenId = 1;
@@ -38,8 +40,10 @@ describe('Bridge contract', () => {
         await token.deployed(); 
         
         bridge = await new Bridge__factory(owner).deploy(owner.address, token.address);
-        await bridge.deployed();  
+        await bridge.deployed(); 
 
+        await token.grantRole(minterRole, bridge.address);
+        
         await token.connect(owner).createToken(owner.address,ramsesURI);
         await token.connect(owner).createToken(addr1.address,ramsesURI);
     });
@@ -53,8 +57,12 @@ describe('Bridge contract', () => {
             expect(await token.symbol()).to.equal("MET");
         }); 
 
-        it('Should set right owner for tokens', async () => {
-            expect(await token.owner()).to.equal(owner.address);
+        it('Should set admin role for owner', async () => {
+            expect(await token.hasRole(minterRole, owner.address)).to.equal(true);
+        });
+
+        it('Should set minter role for owner', async () => {
+            expect(await token.hasRole(minterRole, bridge.address)).to.equal(true);
         });
 
         it('Should set right balance for owner address and addr1 address', async () => {
@@ -75,14 +83,14 @@ describe('Bridge contract', () => {
                 )).to.be.revertedWith('Pausable: paused');
         });
 
-        it('swap: should swap tokens', async () => {
+        it('swap: should swap token', async () => {
             await token.connect(addr1).setApprovalForAll(bridge.address, true);
 
             await expect(bridge.connect(addr1).swap(addr1TokenId, chainTo, nonce))
             .to.emit(token,"Transfer")
             .withArgs(addr1.address, bridge.address, addr1TokenId).and
             .to.emit(bridge, "SwapInitialized")
-            .withArgs(addr1.address, addr1TokenId, 31337, chainTo, nonce);
+            .withArgs(addr1.address, addr1TokenId, 31337, chainTo, nonce, ramsesURI);
             
             let finalBalance = await token.connect(addr1).balanceOf(addr1.address);
             expect(0).to.equal(finalBalance);
@@ -123,7 +131,7 @@ describe('Bridge contract', () => {
             await token.connect(addr1).setApprovalForAll(bridge.address, true);
             await bridge.connect(addr1).swap(addr1TokenId, chainTo, nonce);    
      
-            await expect(bridge.connect(addr1).redeem(hash, addr1TokenId, 97, nonce, v, r, s))
+            await expect(bridge.connect(addr1).redeem(hash, addr1TokenId,ramsesURI, 97, nonce, v, r, s))
             .to.emit(token,"Transfer")
             .withArgs(bridge.address, addr1.address, addr1TokenId).and
             .to.emit(bridge, "SwapRedeemed")
@@ -147,7 +155,34 @@ describe('Bridge contract', () => {
             await token.connect(addr1).setApprovalForAll(bridge.address, true);
             await bridge.connect(addr1).swap(addr1TokenId, chainTo, nonce);    
             
-            await expect(bridge.connect(owner).redeem(hash, addr1TokenId, 97, nonce, v, r, s))
+            await expect(bridge.connect(owner).redeem(hash, addr1TokenId, ramsesURI, 97, nonce, v, r, s))
+            .to.be.revertedWith('Invalid validator signature');
+        });
+
+        it('redeem: should mint token', async () => { 
+            const types = [
+                'address', 'uint256', 'uint256', 'uint256', 'uint256',
+            ];
+        
+            const values = [
+                addr1.address, addr1TokenId, 31337, chainTo, nonce
+            ];
+
+            const hash = ethers.utils.solidityKeccak256(types, values);
+
+            const sign = await owner.signMessage(ethers.utils.arrayify(hash));
+            const { v, r, s } = ethers.utils.splitSignature(sign);
+            
+            await token.connect(addr1).setApprovalForAll(bridge.address, true);
+            await bridge.connect(addr1).swap(addr1TokenId, chainTo, nonce);    
+            await bridge.connect(owner).redeem(hash, 5, ramsesURI, 97, nonce, v, r, s);
+            
+            console.log(await token.tokenExist(5));
+            console.log(await token.ownerOf(5));
+            console.log(await token.balanceOf(owner.address));
+            await bridge.connect(owner).redeem(hash, 5, ramsesURI, 97, nonce, v, r, s);
+            console.log(await token.balanceOf(owner.address));
+            await expect(bridge.connect(owner).redeem(hash, 5, ramsesURI, 97, nonce, v, r, s))
             .to.be.revertedWith('Invalid validator signature');
         });
     });
