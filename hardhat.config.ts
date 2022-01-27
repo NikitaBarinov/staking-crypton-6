@@ -54,7 +54,7 @@ function createNetworkConfig(
     };
   }
 
-export default {
+  export default {
     solidity: {
         version: "0.8.4",
         settings: {
@@ -66,6 +66,11 @@ export default {
       },
       defaultNetwork: 'hardhat',
       networks: {
+        hardhat: {
+          forking: {
+            url: `https://eth-mainnet.alchemyapi.io/v2/8RY7PbnJjixqszNI9_ZzUtQLwtMM-gUo`,
+          }
+        },
         rinkeby: createNetworkConfig('rinkeby'),
         kovan: createNetworkConfig('kovan'),
         BSC:{
